@@ -1,0 +1,363 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lab 7 Firewall</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a lab handout — two animated network scenes stacked, each with its notes; chain controls drive the second scene live. */
+:root{
+  --bg:#edf1f5; --surface:#ffffff; --ink:#142131; --muted:#566476; --line:#cfd8e2;
+  --accent:#e2620e; --accept:#1d9a52; --drop:#d63a33;
+  --in:#1f6fc5; --out:#8a46cc; --fwd:#0d8a85;
+  --brick:#c8d2dd; --brick-line:#97a6b7; --screen:#1b2230; --screen-ink:#9fe6b8;
+  --term:#101823; --term-ink:#d6e2ee; --term-dim:#7d8ea2;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1520; --surface:#141f2d; --ink:#e2e9f1; --muted:#93a2b4; --line:#26364a;
+  --accent:#ff8a3d; --accept:#3ccb7a; --drop:#ff5f57;
+  --in:#5aa6ff; --out:#bf8bff; --fwd:#3fcfc6;
+  --brick:#26364a; --brick-line:#3d5069; --screen:#0a0f17; --screen-ink:#7fe0a3;
+  --term:#080d14; --term-ink:#d6e2ee; --term-dim:#6f8196; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1520; --surface:#141f2d; --ink:#e2e9f1; --muted:#93a2b4; --line:#26364a;
+  --accent:#ff8a3d; --accept:#3ccb7a; --drop:#ff5f57;
+  --in:#5aa6ff; --out:#bf8bff; --fwd:#3fcfc6;
+  --brick:#26364a; --brick-line:#3d5069; --screen:#0a0f17; --screen-ink:#7fe0a3;
+  --term:#080d14; --term-ink:#d6e2ee; --term-dim:#6f8196; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px}
+.eyebrow{font:500 13px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(36px,6vw,60px)/1 var(--f-display);margin:8px 0 0;letter-spacing:.01em;text-wrap:balance}
+h1 span{color:var(--accent)}
+h2{font:700 24px/1.15 var(--f-display);margin:0;letter-spacing:.02em;text-wrap:balance}
+.btn{font:500 14px/1 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);
+  border-radius:6px;padding:10px 14px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.scene{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:18px}
+.scene-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;align-items:baseline}
+.scene-head p{margin:0;color:var(--muted);max-width:60ch}
+.stage{overflow-x:auto}
+.stage svg{display:block;width:100%;height:auto;min-width:560px}
+
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.note{border-top:2px solid var(--line);padding-top:12px;min-width:0}
+.note b{display:block;font:600 13px/1.2 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.note p{margin:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{font:500 13px/1 var(--f-mono);border:1px solid var(--line);border-radius:999px;padding:6px 10px}
+
+.chains{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.chain{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.chain[data-chain="INPUT"]{--c:var(--in)} .chain[data-chain="OUTPUT"]{--c:var(--out)} .chain[data-chain="FORWARD"]{--c:var(--fwd)}
+.chain h3{margin:0;font:700 20px/1 var(--f-display);color:var(--c);letter-spacing:.04em}
+.chain p{margin:0;font-size:14px;color:var(--muted)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:600 13px/1 var(--f-mono);letter-spacing:.06em;padding:10px 6px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"][data-p="ACCEPT"]{background:var(--accept);color:#fff}
+.seg button[aria-pressed="true"][data-p="DROP"]{background:var(--drop);color:#fff}
+.count{font:500 13px/1.3 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.count .a{color:var(--accept)} .count .d{color:var(--drop)}
+
+.bottom{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+.term{background:var(--term);color:var(--term-ink);border-radius:8px;padding:14px 16px;font:400 13.5px/1.7 var(--f-mono);overflow-x:auto;white-space:pre;margin:0;font-variant-numeric:tabular-nums}
+.term .p{color:var(--term-dim)} .term .acc{color:#4fd98a} .term .drp{color:#ff7a72}
+.legend{border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;justify-content:center}
+.legend div{display:flex;align-items:center;gap:12px;font:600 17px/1.2 var(--f-display);letter-spacing:.03em}
+.legend code{font:600 14px/1 var(--f-mono);padding:6px 9px;border-radius:5px;color:#fff;min-width:74px;text-align:center}
+.legend .ka{background:var(--accept)} .legend .kd{background:var(--drop)}
+.legend small{font:400 13px/1.4 var(--f-body);color:var(--muted)}
+
+/* SVG */
+.s-label{font:700 15px var(--f-display);letter-spacing:.08em;fill:var(--ink)}
+.s-small{font:500 12px var(--f-mono);letter-spacing:.06em;fill:var(--muted)}
+.s-line{stroke:var(--line);stroke-width:2;fill:none}
+.s-dash{stroke:var(--line);stroke-width:2;fill:none;stroke-dasharray:6 6}
+.s-obj{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.s-glass{fill:var(--bg);stroke:var(--ink);stroke-width:2}
+.s-ink{fill:var(--ink)}
+.s-win{fill:var(--accent);opacity:.75}
+.brick{fill:var(--brick);stroke:var(--brick-line);stroke-width:1.5}
+.flame-o{fill:var(--accent)} .flame-i{fill:#ffc94d}
+.gate{stroke:var(--accent);stroke-width:2;stroke-dasharray:3 5;fill:none}
+.screen{fill:var(--screen)} .screen-t{font:500 11px var(--f-mono);fill:var(--screen-ink)}
+.lbl-in{font:700 14px var(--f-display);letter-spacing:.06em;fill:var(--in)}
+.lbl-out{font:700 14px var(--f-display);letter-spacing:.06em;fill:var(--out)}
+.lbl-fwd{font:700 14px var(--f-display);letter-spacing:.06em;fill:var(--fwd)}
+.lane-in{stroke:var(--in);opacity:.28;stroke-width:2;fill:none;stroke-dasharray:4 6}
+.lane-out{stroke:var(--out);opacity:.28;stroke-width:2;fill:none;stroke-dasharray:4 6}
+.lane-fwd{stroke:var(--fwd);opacity:.4;stroke-width:2;fill:none;stroke-dasharray:8 6}
+.pkt{stroke:var(--surface);stroke-width:2}
+.pkt.in{fill:var(--in)} .pkt.out{fill:var(--out)} .pkt.fwd{fill:var(--fwd)} .pkt.neutral{fill:var(--muted)}
+.pkt.ok{fill:var(--accept)} .pkt.drop{fill:var(--drop)}
+.xmark line{stroke:var(--drop);stroke-width:3;stroke-linecap:round}
+.flame-g{transform-origin:450px 165px;animation:flick 1.4s ease-in-out infinite}
+@keyframes flick{0%,100%{transform:scale(1,1)}50%{transform:scale(1.06,.94)}}
+.paused .flame-g{animation-play-state:paused}
+
+@media (max-width:760px){.notes,.chains,.bottom{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.flame-g{animation:none}}
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <div class="eyebrow">CIS 2903 · Operating Systems · Lab 7 points to remember</div>
+      <h1>Fire<span>wall</span></h1>
+    </div>
+    <button class="btn" id="pause" type="button" aria-pressed="false">❚❚ Pause</button>
+  </header>
+
+  <section class="scene">
+    <div class="scene-head">
+      <h2>A network security system</h2>
+      <p>It monitors and controls incoming and outgoing traffic, protecting the internal network. Grey packets get checked at the wall: green passes, red is blocked.</p>
+    </div>
+    <div class="stage">
+      <svg id="s1" viewBox="0 0 900 300" role="img" aria-label="Packets travel between the public network and the internal network; the firewall in the middle allows some and blocks others.">
+        <defs>
+          <pattern id="bricks" width="40" height="24" patternUnits="userSpaceOnUse">
+            <rect class="brick" x="0" y="0" width="40" height="12"/>
+            <rect class="brick" x="-20" y="12" width="40" height="12"/>
+            <rect class="brick" x="20" y="12" width="40" height="12"/>
+          </pattern>
+        </defs>
+        <!-- public -->
+        <path class="s-line" d="M160 143 V175 M160 160 H95 V200 M160 160 H225 V200 M160 175 V200"/>
+        <circle class="s-glass" cx="160" cy="95" r="48"/>
+        <ellipse class="s-line" style="stroke:var(--ink)" cx="160" cy="95" rx="20" ry="48"/>
+        <path class="s-line" style="stroke:var(--ink)" d="M112 95 H208 M120 70 H200 M120 120 H200"/>
+        <g><rect class="s-obj" x="70" y="200" width="50" height="34" rx="3"/><rect class="s-obj" x="135" y="200" width="50" height="34" rx="3"/><rect class="s-obj" x="200" y="200" width="50" height="34" rx="3"/>
+          <path class="s-line" style="stroke:var(--ink)" d="M85 244h20M95 234v10M150 244h20M160 234v10M215 244h20M225 234v10"/></g>
+        <text class="s-label" x="160" y="282" text-anchor="middle">PUBLIC NETWORK</text>
+
+        <!-- internal -->
+        <path class="s-line" d="M740 150 V175 M740 160 H675 V200 M740 160 H805 V200 M740 175 V200"/>
+        <rect class="s-obj" x="712" y="38" width="56" height="112"/>
+        <rect class="s-obj" x="680" y="80" width="34" height="70"/>
+        <rect class="s-obj" x="766" y="98" width="30" height="52"/>
+        <g class="s-win">
+          <rect x="722" y="50" width="10" height="8"/><rect x="748" y="50" width="10" height="8"/>
+          <rect x="722" y="70" width="10" height="8"/><rect x="748" y="70" width="10" height="8"/>
+          <rect x="722" y="90" width="10" height="8"/><rect x="748" y="90" width="10" height="8"/>
+          <rect x="722" y="110" width="10" height="8"/><rect x="748" y="110" width="10" height="8"/>
+          <rect x="690" y="94" width="14" height="8"/><rect x="690" y="114" width="14" height="8"/><rect x="774" y="110" width="14" height="8"/>
+        </g>
+        <g><rect class="s-obj" x="650" y="200" width="50" height="34" rx="3"/><rect class="s-obj" x="715" y="200" width="50" height="34" rx="3"/><rect class="s-obj" x="780" y="200" width="50" height="34" rx="3"/>
+          <path class="s-line" style="stroke:var(--ink)" d="M665 244h20M675 234v10M730 244h20M740 234v10M795 244h20M805 234v10"/></g>
+        <text class="s-label" x="740" y="282" text-anchor="middle">INTERNAL NETWORK</text>
+
+        <!-- lanes -->
+        <path id="l1in" class="lane-in" d="M215 112 H685"/>
+        <path id="l1out" class="lane-out" d="M685 186 H215"/>
+        <text class="lbl-in" x="300" y="100">IN →</text>
+        <text class="lbl-out" x="600" y="210" text-anchor="end">← OUT</text>
+
+        <!-- wall -->
+        <rect x="400" y="70" width="100" height="168" fill="url(#bricks)"/>
+        <rect x="400" y="70" width="100" height="168" fill="none" style="stroke:var(--brick-line)" stroke-width="2"/>
+        <g class="flame-g">
+          <path class="flame-o" d="M450 108 C470 132 486 148 480 172 C476 192 462 204 450 204 C436 204 420 192 420 172 C420 156 432 146 436 132 C440 146 446 150 450 150 C452 136 448 122 450 108Z"/>
+          <path class="flame-i" d="M450 150 C462 164 468 176 464 188 C461 197 456 200 450 200 C443 200 437 195 436 186 C435 176 444 170 450 150Z"/>
+        </g>
+        <text class="s-label" x="450" y="282" text-anchor="middle">FIREWALL</text>
+        <g id="pk1"></g>
+      </svg>
+    </div>
+    <div class="notes">
+      <div class="note"><b>What it does</b><p>Monitors and controls <strong>IN</strong> and <strong>OUT</strong> network traffic using rules, and protects the systems behind it.</p></div>
+      <div class="note"><b>Types</b><p>Hardware firewalls sit at the network edge. Software firewalls run on the host itself.</p>
+        <div class="chips"><span class="chip">Hardware</span><span class="chip">Software</span></div></div>
+      <div class="note"><b>iptables</b><p>The Linux <strong>firewall utility</strong> we use in the lab. Its rules are grouped into <strong>chains</strong>: INPUT, OUTPUT and FORWARD.</p></div>
+    </div>
+  </section>
+
+  <section class="scene">
+    <div class="scene-head">
+      <h2>iptables chains on one host</h2>
+      <p>Set each chain's policy below and watch the traffic change. The dashed orange lines are where iptables checks each packet.</p>
+    </div>
+    <div class="stage">
+      <svg id="s2" viewBox="0 0 900 400" role="img" aria-label="An Ubuntu host. Inbound packets arrive from the right on the INPUT chain, outbound packets leave to the left on the OUTPUT chain, and forwarded packets pass underneath on the FORWARD chain.">
+        <path id="i1" class="lane-in" d="M880 85 Q 650 85 540 140"/>
+        <path id="i2" class="lane-in" d="M880 158 L 540 154"/>
+        <path id="i3" class="lane-in" d="M880 232 Q 650 232 540 172"/>
+        <path id="o1" class="lane-out" d="M360 140 Q 250 85 20 85"/>
+        <path id="o2" class="lane-out" d="M360 154 L 20 158"/>
+        <path id="o3" class="lane-out" d="M360 172 Q 250 232 20 232"/>
+        <path id="f1" class="lane-fwd" d="M20 330 L 880 330"/>
+
+        <text class="lbl-out" x="30" y="52">← OUT-BOUND (OUTPUT)</text>
+        <text class="lbl-in" x="870" y="52" text-anchor="end">IN-BOUND (INPUT) ←</text>
+        <text class="lbl-fwd" x="450" y="375" text-anchor="middle">FORWARD → passes through the host to another network</text>
+        <text class="s-small" x="20" y="312">NETWORK A</text>
+        <text class="s-small" x="880" y="312" text-anchor="end">NETWORK B</text>
+
+        <!-- laptop -->
+        <rect class="s-obj" x="370" y="88" width="160" height="108" rx="7"/>
+        <rect class="screen" x="380" y="98" width="140" height="88" rx="3"/>
+        <text class="screen-t" x="388" y="118">$ sudo iptables</text>
+        <text class="screen-t" x="388" y="136">  -L -v</text>
+        <text class="screen-t" x="388" y="160" id="scr">INPUT  DROP</text>
+        <path class="s-obj" d="M350 200 H550 L566 214 H334 Z"/>
+        <text class="s-label" x="450" y="244" text-anchor="middle">LINUX HOST · UBUNTU</text>
+        <!-- checkpoints -->
+        <path class="gate" d="M548 112 V200"/>
+        <path class="gate" d="M352 112 V200"/>
+        <path class="gate" d="M450 300 V350"/>
+        <g id="pk2"></g>
+      </svg>
+    </div>
+
+    <div class="chains" id="chains">
+      <div class="chain" data-chain="INPUT">
+        <h3>INPUT</h3>
+        <p>Packets coming <strong>in</strong>, addressed to this host.</p>
+        <div class="seg" role="group" aria-label="INPUT policy"><button type="button" id="in-a" data-p="ACCEPT">ACCEPT</button><button type="button" id="in-d" data-p="DROP">DROP</button></div>
+        <div class="count"></div>
+      </div>
+      <div class="chain" data-chain="OUTPUT">
+        <h3>OUTPUT</h3>
+        <p>Packets created on this host going <strong>out</strong>.</p>
+        <div class="seg" role="group" aria-label="OUTPUT policy"><button type="button" id="out-a" data-p="ACCEPT">ACCEPT</button><button type="button" id="out-d" data-p="DROP">DROP</button></div>
+        <div class="count"></div>
+      </div>
+      <div class="chain" data-chain="FORWARD">
+        <h3>FORWARD</h3>
+        <p>Packets passing <strong>through</strong> the host, routed from one network to another.</p>
+        <div class="seg" role="group" aria-label="FORWARD policy"><button type="button" id="fwd-a" data-p="ACCEPT">ACCEPT</button><button type="button" id="fwd-d" data-p="DROP">DROP</button></div>
+        <div class="count"></div>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <pre class="term" id="term" aria-live="polite"></pre>
+      <div class="legend">
+        <div><code class="ka">ACCEPT</code> → Allow</div>
+        <div><code class="kd">DROP</code> → Deny / Block</div>
+        <small>DROP discards the packet silently. The sender gets no reply.</small>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const rand=(a,b)=>a+Math.random()*(b-a);
+  const policy={INPUT:"DROP",OUTPUT:"ACCEPT",FORWARD:"ACCEPT"};
+  const stats={INPUT:{a:0,d:0},OUTPUT:{a:0,d:0},FORWARD:{a:0,d:0}};
+  let lastCmd="sudo iptables -P INPUT DROP";
+  const lanes=[];
+
+  function addLane(layerId,pathId,o){
+    const path=document.getElementById(pathId);
+    const lane=Object.assign({layer:document.getElementById(layerId),path,len:path.getTotalLength(),packets:[],next:rand(0,o.max)},o);
+    lanes.push(lane);
+  }
+  function place(lane,p){const pt=lane.path.getPointAtLength(Math.min(p.t,1)*lane.len);p.x=pt.x;p.y=pt.y;p.el.setAttribute("cx",pt.x);p.el.setAttribute("cy",pt.y);}
+  function spawn(lane,t){
+    const c=document.createElementNS(NS,"circle");
+    c.setAttribute("r",7);c.setAttribute("class","pkt "+lane.cls);
+    lane.layer.appendChild(c);
+    const p={el:c,t:t||0,state:"pending",life:0};
+    if(p.t>lane.check){ if(lane.decide()){p.state="ok";c.classList.add("ok");} else p.t=Math.random()*lane.check; }
+    lane.packets.push(p);place(lane,p);
+  }
+  function kill(lane,p){p.el.remove();if(p.x2)p.x2.remove();lane.packets.splice(lane.packets.indexOf(p),1);}
+  function cross(layer,x,y){
+    const g=document.createElementNS(NS,"g");g.setAttribute("class","xmark");
+    g.innerHTML=`<line x1="${x-8}" y1="${y-8}" x2="${x+8}" y2="${y+8}"/><line x1="${x+8}" y1="${y-8}" x2="${x-8}" y2="${y+8}"/>`;
+    layer.appendChild(g);return g;
+  }
+  function tick(dt){
+    for(const lane of lanes){
+      lane.next-=dt; if(lane.next<=0){spawn(lane,0);lane.next=rand(lane.min,lane.max);}
+      for(const p of lane.packets.slice()){
+        if(p.state==="dying"){
+          p.life+=dt;const k=Math.min(p.life/0.8,1);
+          p.el.setAttribute("r",7+7*k);p.el.style.opacity=1-k;p.x2.style.opacity=1-k*k;
+          if(k>=1)kill(lane,p);continue;
+        }
+        p.t+=lane.speed*dt/lane.len;
+        if(p.state==="pending"&&p.t>=lane.check){
+          p.t=lane.check;const ok=lane.decide();
+          if(lane.chain)record(lane.chain,ok);
+          if(ok){p.state="ok";p.el.classList.add("ok");}
+          else{p.state="dying";p.el.classList.add("drop");place(lane,p);p.x2=cross(lane.layer,p.x,p.y);continue;}
+        }
+        if(p.t>=1){kill(lane,p);continue;}
+        place(lane,p);
+      }
+    }
+  }
+
+  // Scene 1: firewall rules decide (about a third of traffic is blocked)
+  const fw=()=>Math.random()>0.35;
+  addLane("pk1","l1in",{cls:"neutral",check:0.39,decide:fw,speed:120,min:0.7,max:1.4});
+  addLane("pk1","l1out",{cls:"neutral",check:0.40,decide:fw,speed:120,min:0.9,max:1.7});
+
+  // Scene 2: chain policies decide
+  const by=ch=>()=>policy[ch]==="ACCEPT";
+  ["i1","i2","i3"].forEach(id=>addLane("pk2",id,{cls:"in",chain:"INPUT",check:0.985,decide:by("INPUT"),speed:110,min:1.4,max:3}));
+  ["o1","o2","o3"].forEach(id=>addLane("pk2",id,{cls:"out",chain:"OUTPUT",check:0.02,decide:by("OUTPUT"),speed:110,min:1.6,max:3.2}));
+  addLane("pk2","f1",{cls:"fwd",chain:"FORWARD",check:0.5,decide:by("FORWARD"),speed:130,min:1.1,max:2});
+
+  // seed a resting frame
+  for(const lane of lanes){for(let i=0;i<2;i++)spawn(lane,Math.random());}
+
+  // UI
+  const term=document.getElementById("term"),scr=document.getElementById("scr");
+  function record(ch,ok){ok?stats[ch].a++:stats[ch].d++;render();}
+  function render(){
+    document.querySelectorAll(".chain").forEach(card=>{
+      const ch=card.dataset.chain;
+      card.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.p===policy[ch])));
+      card.querySelector(".count").innerHTML=`<span class="a">${stats[ch].a} accepted</span> · <span class="d">${stats[ch].d} dropped</span>`;
+    });
+    const line=ch=>{const n=stats[ch].a+stats[ch].d,cls=policy[ch]==="ACCEPT"?"acc":"drp";
+      return `Chain ${ch.padEnd(7)} (policy <span class="${cls}">${policy[ch].padEnd(6)}</span> ${String(n).padStart(3)} packets, ${String(n*84).padStart(5)} bytes)`;};
+    term.innerHTML=`<span class="p">$</span> ${lastCmd}\n<span class="p">$</span> sudo iptables -L -v\n${line("INPUT")}\n${line("FORWARD")}\n${line("OUTPUT")}`;
+    const drops=Object.keys(policy).filter(k=>policy[k]==="DROP");
+    scr.textContent=drops.length?drops[0].padEnd(7)+"DROP"+(drops.length>1?" +"+(drops.length-1):""):"all ACCEPT";
+  }
+  document.getElementById("chains").addEventListener("click",e=>{
+    const b=e.target.closest(".seg button");if(!b)return;
+    const ch=b.closest(".chain").dataset.chain;
+    if(policy[ch]===b.dataset.p)return;
+    policy[ch]=b.dataset.p;lastCmd=`sudo iptables -P ${ch} ${b.dataset.p}`;render();
+  });
+  render();
+
+  // loop
+  const app=document.getElementById("app"),btn=document.getElementById("pause");
+  let paused=window.matchMedia("(prefers-reduced-motion: reduce)").matches,last=performance.now();
+  function setPaused(v){paused=v;app.classList.toggle("paused",v);btn.setAttribute("aria-pressed",String(v));btn.textContent=v?"▶ Play":"❚❚ Pause";last=performance.now();}
+  btn.addEventListener("click",()=>setPaused(!paused));
+  setPaused(paused);
+  function frame(now){const dt=Math.min((now-last)/1000,0.05);last=now;if(!paused)tick(dt);requestAnimationFrame(frame);}
+  requestAnimationFrame(frame);
+})();
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

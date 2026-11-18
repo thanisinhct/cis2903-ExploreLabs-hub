@@ -1,0 +1,376 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lab 7 Blocking SSH</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a scripted lab run — network scene on top, step controls, then the two machines' terminals side by side as on the slide (Linux left, Windows right), notes last. */
+:root{
+  --bg:#edf1f5; --surface:#ffffff; --ink:#142131; --muted:#566476; --line:#cfd8e2;
+  --accent:#e2620e; --accept:#1d9a52; --drop:#d63a33; --win:#1f6fc5; --linux:#b4462a;
+  --brick:#c8d2dd; --brick-line:#97a6b7; --screen:#1b2230; --screen-ink:#9fe6b8; --winscreen:#2b7fd6;
+  --term:#101823; --term-ink:#d6e2ee; --term-dim:#7d8ea2; --term-red:#ff7a72; --term-green:#5fdc95; --term-yellow:#ffd36b;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1520; --surface:#141f2d; --ink:#e2e9f1; --muted:#93a2b4; --line:#26364a;
+  --accent:#ff8a3d; --accept:#3ccb7a; --drop:#ff5f57; --win:#5aa6ff; --linux:#ff8c6b;
+  --brick:#26364a; --brick-line:#3d5069; --screen:#0a0f17; --winscreen:#2c6db8;
+  --term:#080d14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1520; --surface:#141f2d; --ink:#e2e9f1; --muted:#93a2b4; --line:#26364a;
+  --accent:#ff8a3d; --accept:#3ccb7a; --drop:#ff5f57; --win:#5aa6ff; --linux:#ff8c6b;
+  --brick:#26364a; --brick-line:#3d5069; --screen:#0a0f17; --winscreen:#2c6db8;
+  --term:#080d14; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+.wrap{max-width:1120px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:24px}
+.eyebrow{font:500 13px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(32px,5.4vw,54px)/1.02 var(--f-display);margin:8px 0 0;text-wrap:balance}
+h1 span{color:var(--accent)}
+h2{font:700 22px/1.15 var(--f-display);margin:0;letter-spacing:.02em}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.scene{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.stage{overflow-x:auto}
+.stage svg{display:block;width:100%;height:auto;min-width:560px}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:500 14px/1 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.stepno{font:500 13px/1 var(--f-mono);color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.caption{margin:0;padding:12px 14px;border-left:4px solid var(--accent);background:var(--bg);border-radius:0 6px 6px 0;font-size:17px;min-height:3.2em}
+
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.steps button{font:500 12.5px/1 var(--f-mono);border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:7px 10px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.steps button .n{font-variant-numeric:tabular-nums;opacity:.7}
+.steps button.done{color:var(--ink)}
+.steps button.cur{border-color:var(--accent);color:var(--accent)}
+.steps .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+
+.terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.tw{display:flex;flex-direction:column;min-width:0;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.tbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;font:600 13px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:#fff}
+.tbar small{font:400 12px/1 var(--f-mono);letter-spacing:0;text-transform:none;opacity:.85}
+.tw.linux .tbar{background:var(--linux)} .tw.win .tbar{background:var(--win)}
+.term{background:var(--term);color:var(--term-ink);font:400 13px/1.6 var(--f-mono);padding:12px 14px;height:290px;overflow:auto;white-space:pre;margin:0}
+.term .pr{color:var(--term-green)} .term .wpr{color:var(--term-dim)} .term .err{color:var(--term-red)} .term .ok{color:var(--term-green)} .term .dim{color:var(--term-dim)}
+.cursor{display:inline-block;width:.55em;height:1.1em;vertical-align:-.2em;background:var(--term-ink);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.note b{display:block;font:600 12.5px/1.2 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.note p{margin:0 0 6px} .note p:last-child{margin:0}
+.note code{font:500 13.5px var(--f-mono);background:var(--bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.note.warn{grid-column:1/-1;border:2px solid var(--drop);display:flex;gap:14px;align-items:center}
+.note.warn .big{font:700 20px/1.2 var(--f-display);letter-spacing:.02em;text-wrap:balance}
+.note.warn svg{flex:none}
+.fix li{margin-bottom:6px} .fix{margin:0;padding-left:18px}
+.fix s{color:var(--muted)}
+
+/* svg */
+.s-label{font:700 15px var(--f-display);letter-spacing:.08em}
+.lab-linux{fill:var(--linux)} .lab-win{fill:var(--win)}
+.s-small{font:500 12px var(--f-mono);fill:var(--muted)}
+.s-mid{font:600 14px var(--f-mono);fill:var(--ink)}
+.s-obj{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.screen{fill:var(--screen)} .screen-t{font:500 11px var(--f-mono);fill:var(--screen-ink)}
+.wscreen{fill:var(--winscreen)} .wwin{fill:#ffffff;opacity:.92} .wbar{fill:#1b4f8a;opacity:.9}
+.lane{stroke:var(--win);stroke-width:3;stroke-dasharray:10 8;fill:none;opacity:.55}
+.lane.back{stroke:var(--accept);opacity:.3;stroke-width:2;stroke-dasharray:4 8}
+.lane.flow{animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-36}}
+.brick{fill:var(--brick);stroke:var(--brick-line);stroke-width:1.5}
+.pkt{stroke:var(--surface);stroke-width:2;fill:var(--win)}
+.pkt.ok{fill:var(--accept)} .pkt.drop{fill:var(--drop)}
+.xmark line{stroke:var(--drop);stroke-width:3;stroke-linecap:round}
+.rule-tag rect{stroke-width:2}
+.rule-off rect{fill:var(--surface);stroke:var(--accept)} .rule-off text{fill:var(--accept)}
+.rule-on rect{fill:var(--drop);stroke:var(--drop)} .rule-on text{fill:#fff}
+.rule-t{font:600 12px var(--f-mono)}
+#bigx{transform-origin:330px 132px;transition:transform .25s cubic-bezier(.3,1.6,.6,1),opacity .25s}
+#bigx.off{transform:scale(0);opacity:0}
+
+@media (max-width:760px){.terms,.notes{grid-template-columns:1fr}.term{height:240px}}
+@media (prefers-reduced-motion:reduce){.lane.flow,.cursor{animation:none}#bigx{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CIS 2903 · Operating Systems · Lab 7 points to remember</div>
+    <h1>Blocking <span>SSH</span> with iptables</h1>
+  </header>
+
+  <section class="scene" aria-label="Lab walkthrough">
+    <div class="stage">
+      <svg viewBox="0 0 900 290" role="img" aria-label="A Windows machine connects to a Linux machine over ssh on TCP port 2222. An iptables rule on the Linux machine can drop that traffic.">
+        <defs>
+          <pattern id="bricks" width="24" height="16" patternUnits="userSpaceOnUse">
+            <rect class="brick" x="0" y="0" width="24" height="8"/><rect class="brick" x="-12" y="8" width="24" height="8"/><rect class="brick" x="12" y="8" width="24" height="8"/>
+          </pattern>
+        </defs>
+        <text class="s-label lab-linux" x="165" y="36" text-anchor="middle">LINUX MACHINE</text>
+        <text class="s-label lab-win" x="745" y="36" text-anchor="middle">WINDOWS MACHINE</text>
+        <text class="s-small" x="165" y="236" text-anchor="middle">Ubuntu VM · 192.168.16.7</text>
+        <text class="s-small" x="165" y="254" text-anchor="middle">sshd listening on port 2222</text>
+        <text class="s-small" x="745" y="236" text-anchor="middle">cmd · OpenSSH client</text>
+
+        <!-- linux laptop -->
+        <rect class="s-obj" x="85" y="62" width="160" height="108" rx="7"/>
+        <rect class="screen" x="95" y="72" width="140" height="88" rx="3"/>
+        <text class="screen-t" x="103" y="92" id="lprompt">cis@ubuntu:~$</text>
+        <text class="screen-t" x="103" y="112">iptables</text>
+        <text class="screen-t" x="103" y="132" id="lrules">INPUT: no rules</text>
+        <path class="s-obj" d="M65 174 H265 L281 188 H49 Z"/>
+
+        <!-- windows laptop -->
+        <rect class="s-obj" x="665" y="62" width="160" height="108" rx="7"/>
+        <rect class="wscreen" x="675" y="72" width="140" height="88" rx="3"/>
+        <rect class="wwin" x="700" y="84" width="90" height="58" rx="3"/>
+        <rect class="wbar" x="700" y="84" width="90" height="10" rx="2"/>
+        <rect x="708" y="102" width="50" height="4" fill="#9db4cf"/><rect x="708" y="112" width="70" height="4" fill="#9db4cf"/><rect x="708" y="122" width="40" height="4" fill="#9db4cf"/>
+        <rect x="675" y="152" width="140" height="8" fill="#123a66" opacity=".6"/>
+        <path class="s-obj" d="M645 174 H845 L861 188 H629 Z"/>
+
+        <!-- link -->
+        <path id="fwd" class="lane" d="M655 118 L 250 118"/>
+        <path id="back" class="lane back" d="M250 146 L 655 146"/>
+        <text class="s-mid" x="455" y="96" text-anchor="middle" font-style="italic">ssh · scp · sftp → TCP port 2222</text>
+        <text class="s-small" x="455" y="176" text-anchor="middle">Remote connection</text>
+
+        <!-- firewall gate -->
+        <rect x="300" y="82" width="26" height="100" fill="url(#bricks)"/>
+        <rect x="300" y="82" width="26" height="100" fill="none" style="stroke:var(--brick-line)" stroke-width="2"/>
+        <g id="ruletag" class="rule-tag rule-off">
+          <rect x="250" y="196" width="130" height="26" rx="5"/>
+          <text class="rule-t" x="315" y="213" text-anchor="middle" id="ruletext">INPUT: ACCEPT all</text>
+        </g>
+        <g id="pk"></g>
+        <g id="bigx" class="off">
+          <circle cx="330" cy="132" r="24" fill="var(--drop)" style="fill:var(--drop)"/>
+          <path d="M320 122 L340 142 M340 122 L320 142" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="restart" type="button">↺ Restart</button>
+      <button class="btn" id="back" type="button">◀ Back</button>
+      <button class="btn primary" id="next" type="button">Next step ▶</button>
+      <button class="btn" id="play" type="button">Play all</button>
+      <span class="stepno" id="stepno"></span>
+    </div>
+    <p class="caption" id="caption" aria-live="polite"></p>
+    <ol class="steps" id="steps"></ol>
+
+    <div class="terms">
+      <div class="tw linux"><div class="tbar">Linux terminal <small>Ubuntu VM</small></div><pre class="term" id="tl"></pre></div>
+      <div class="tw win"><div class="tbar">Windows cmd <small>Run → cmd</small></div><pre class="term" id="tw"></pre></div>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Points to remember">
+    <div class="note"><b>Be root first</b><p>Run iptables commands as <strong>root</strong>.</p><p>Switch with <code>su -</code> or <code>sudo -i</code>. The prompt changes from <code>$</code> to <code>#</code>.</p></div>
+    <div class="note"><b>Configure iptables</b><p>iptables is installed by default.</p><p>Back up: <code>iptables-save &gt; tables.backup</code></p><p>List: <code>iptables -L</code></p><p>Delete: <code>iptables -D INPUT 3</code></p></div>
+    <div class="note"><b>From Windows cmd</b><p><code>ssh -p 2222 cis@192.168.16.7</code></p><p><code>scp -P 2222 testfile.txt cis@192.168.16.7:</code></p><p><code>sftp -P 2222 cis@192.168.16.7</code></p></div>
+    <div class="note warn">
+      <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><path d="M22 4 L41 38 H3 Z" style="fill:var(--drop)"/><rect x="20" y="15" width="4" height="13" fill="#fff"/><rect x="20" y="31" width="4" height="4" fill="#fff"/></svg>
+      <div><div class="big">Very, very important: read the question carefully and understand the rule before executing it.</div>
+      <p style="margin:6px 0 0;color:var(--muted)"><code>iptables -A INPUT -p tcp --dport 2222 -j DROP</code> drops only incoming TCP traffic on port 2222. Everything else still gets through.</p></div>
+    </div>
+    <div class="note" style="grid-column:1/-1"><b>Syntax to watch</b>
+      <ul class="fix">
+        <li>Chain names are uppercase: <code>INPUT</code>, not <s>input</s>. Lowercase fails with “No chain/target/match by that name”.</li>
+        <li><code>-D</code> needs the chain and the number: <code>iptables -D INPUT 3</code>. Use <code>iptables -L --line-numbers</code> to see the numbers.</li>
+        <li>ssh takes a lowercase <code>-p</code> for the port; scp and sftp take a capital <code>-P</code>.</li>
+        <li>scp needs a colon after the host (<code>cis@192.168.16.7:</code>). Without it, scp copies to a local file named after the host.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $=id=>document.getElementById(id);
+  const IP="192.168.16.7";
+  const WPROMPT="C:\\Users\\student>";
+  const st={root:false,rule:false};
+
+  const listEmpty=["Chain INPUT (policy ACCEPT)","target     prot opt source               destination","","Chain FORWARD (policy ACCEPT)","target     prot opt source               destination","","Chain OUTPUT (policy ACCEPT)","target     prot opt source               destination"];
+  const listNum=()=>["Chain INPUT (policy ACCEPT)","num  target     prot opt source               destination",...(st.rule?["1    DROP       tcp  --  anywhere             anywhere             tcp dpt:2222"]:[]),"","Chain FORWARD (policy ACCEPT)","num  target     prot opt source               destination","","Chain OUTPUT (policy ACCEPT)","num  target     prot opt source               destination"];
+  const netOut={
+    ssh:ok=>ok?[`cis@${IP}'s password:`,["Welcome to Ubuntu 24.04 LTS (GNU/Linux)","ok"],"cis@ubuntu:~$ exit","logout",`Connection to ${IP} closed.`]:[[`ssh: connect to host ${IP} port 2222: Connection timed out`,"err"]],
+    scp:ok=>ok?[`cis@${IP}'s password:`,["testfile.txt                  100%   12     6.0KB/s   00:00","ok"]]:[[`ssh: connect to host ${IP} port 2222: Connection timed out`,"err"],["lost connection","err"]],
+    sftp:ok=>ok?[`cis@${IP}'s password:`,[`Connected to ${IP}.`,"ok"],"sftp> bye"]:[[`ssh: connect to host ${IP} port 2222: Connection timed out`,"err"],["Connection closed","err"]]
+  };
+
+  const S=[
+    {side:"l",cmd:"sudo -i",out:()=>["[sudo] password for cis:"],fx:()=>st.root=true,
+     cap:"On the Linux machine, switch to the root user. iptables commands need root (su - works too)."},
+    {side:"l",cmd:"iptables-save > tables.backup",out:()=>[],
+     cap:"Back up the current rules before changing anything. No output means it worked."},
+    {side:"l",cmd:"iptables -L",out:()=>listEmpty,
+     cap:"List the configuration. The chains are empty, so all traffic is allowed."},
+    {side:"w",cmd:`ssh -p 2222 cis@${IP}`,net:"ssh",
+     cap:"From Windows cmd, open a remote connection to the Linux machine with ssh on port 2222. It connects."},
+    {side:"l",cmd:"iptables -A INPUT -p tcp --dport 2222 -j DROP",out:()=>[],fx:()=>st.rule=true,
+     cap:"Append a rule to the INPUT chain: drop incoming TCP traffic on port 2222. Nothing else is affected."},
+    {side:"w",cmd:`ssh -p 2222 cis@${IP}`,net:"ssh",
+     cap:"Try again. DROP throws the packets away without replying, so ssh waits and then times out (sped up here)."},
+    {side:"w",cmd:`scp -P 2222 testfile.txt cis@${IP}:`,net:"scp",
+     cap:"Secure copy uses the same port, so it is blocked too. Note the capital -P."},
+    {side:"l",cmd:"iptables -L --line-numbers",out:listNum,
+     cap:"List the rules with their numbers. Our DROP rule is number 1 in the INPUT chain."},
+    {side:"l",cmd:"iptables -D INPUT 1",out:()=>[],fx:()=>st.rule=false,
+     cap:"Delete rule number 1 from the INPUT chain."},
+    {side:"w",cmd:`sftp -P 2222 cis@${IP}`,net:"sftp",
+     cap:"With the rule gone, SFTP connects on port 2222 again."}
+  ];
+
+  // ---------- packets ----------
+  const fwd=$("fwd"),back=$("back"),layer=$("pk"),FL=fwd.getTotalLength(),BL=back.getTotalLength();
+  const CHECK=(655-326)/(655-250);
+  let packets=[];
+  function pkt(path,len,dir,blocked){
+    const c=document.createElementNS(NS,"circle");c.setAttribute("r",7);c.setAttribute("class","pkt"+(dir==="back"?" ok":""));
+    layer.appendChild(c);const p={c,path,len,t:0,blocked,dir,life:-1};packets.push(p);pos(p);return p;
+  }
+  function pos(p){const pt=p.path.getPointAtLength(Math.min(p.t,1)*p.len);p.x=pt.x;p.y=pt.y;p.c.setAttribute("cx",pt.x);p.c.setAttribute("cy",pt.y);}
+  function clearPackets(){packets.forEach(p=>{p.c.remove();p.x2&&p.x2.remove()});packets=[];}
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min((now-last)/1000,.05);last=now;
+    for(const p of packets.slice()){
+      if(p.life>=0){p.life+=dt;const k=Math.min(p.life/.7,1);p.c.setAttribute("r",7+7*k);p.c.style.opacity=1-k;p.x2.style.opacity=1-k;
+        if(k>=1){p.c.remove();p.x2.remove();packets.splice(packets.indexOf(p),1);}continue;}
+      p.t+=260*dt/p.len;
+      if(p.dir==="fwd"&&p.blocked&&p.t>=CHECK){p.t=CHECK;pos(p);p.c.classList.add("drop");p.life=0;
+        const g=document.createElementNS(NS,"g");g.setAttribute("class","xmark");
+        g.innerHTML=`<line x1="${p.x-7}" y1="${p.y-7}" x2="${p.x+7}" y2="${p.y+7}"/><line x1="${p.x+7}" y1="${p.y-7}" x2="${p.x-7}" y2="${p.y+7}"/>`;
+        layer.appendChild(g);p.x2=g;continue;}
+      if(p.dir==="fwd"&&!p.blocked&&p.t>=CHECK)p.c.classList.add("ok");
+      if(p.t>=1){p.c.remove();packets.splice(packets.indexOf(p),1);continue;}
+      pos(p);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- terminals ----------
+  const T={l:$("tl"),w:$("tw")};
+  function line(side,html){const d=document.createElement("div");d.innerHTML=html;T[side].appendChild(d);T[side].scrollTop=T[side].scrollHeight;return d;}
+  const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  function prompt(side){return side==="l"?`<span class="pr">${st.root?"root@ubuntu:~#":"cis@ubuntu:~$"}</span> `:`<span class="wpr">${esc(WPROMPT)}</span>`;}
+  function cursorTo(side){T.l.querySelectorAll(".cursor").forEach(c=>c.remove());T.w.querySelectorAll(".cursor").forEach(c=>c.remove());
+    const d=line(side,prompt(side)+'<span class="cursor"></span>');d.dataset.live="1";}
+  function resetTerms(){
+    T.l.innerHTML="";T.w.innerHTML="";
+    line("l",'<span class="dim">Ubuntu 24.04 LTS · logged in as cis</span>');
+    line("w",'<span class="dim">Microsoft Windows · Command Prompt</span>');
+    line("l",prompt("l"));line("w",prompt("w"));
+  }
+  function liveLine(side){const ls=T[side].children;const d=ls[ls.length-1];d.innerHTML=prompt(side);return d;}
+
+  // ---------- scene state ----------
+  function syncScene(){
+    $("lprompt").textContent=st.root?"root@ubuntu:~#":"cis@ubuntu:~$";
+    $("lrules").textContent=st.rule?"DROP tcp dpt:2222":"INPUT: no rules";
+    const tag=$("ruletag");tag.setAttribute("class","rule-tag "+(st.rule?"rule-on":"rule-off"));
+    $("ruletext").textContent=st.rule?"DROP tcp dpt:2222":"INPUT: ACCEPT all";
+  }
+
+  // ---------- runner ----------
+  let idx=0,gen=0,busy=false,playing=false;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  async function run(i,instant){
+    const s=S[i],g=gen,side=s.side==="l"?"l":"w";
+    const ok=()=>g===gen;
+    $("bigx").classList.add("off");
+    const d=liveLine(side);
+    if(instant||reduce){d.innerHTML=prompt(side)+esc(s.cmd);}
+    else{
+      T.l.querySelectorAll(".cursor").forEach(c=>c.remove());T.w.querySelectorAll(".cursor").forEach(c=>c.remove());
+      for(let k=1;k<=s.cmd.length;k++){if(!ok())return;d.innerHTML=prompt(side)+esc(s.cmd.slice(0,k))+'<span class="cursor"></span>';T[side].scrollTop=1e9;await sleep(28);}
+      d.querySelector(".cursor")&&d.querySelector(".cursor").remove();
+      await sleep(250);
+    }
+    let out;
+    if(s.net){
+      const allowed=!st.rule;out=netOut[s.net](allowed);
+      if(!instant){
+        fwd.classList.add("flow");
+        for(let k=0;k<4;k++){if(!ok())return;pkt(fwd,FL,"fwd",!allowed);await sleep(220);}
+        await sleep(allowed?900:1500);if(!ok())return;
+        if(allowed){for(let k=0;k<3;k++){if(!ok())return;pkt(back,BL,"back",false);await sleep(220);}await sleep(600);}
+        else{$("bigx").classList.remove("off");await sleep(700);}
+        fwd.classList.remove("flow");
+      } else if(!allowed && i===idx-1) $("bigx").classList.remove("off");
+    } else out=s.out();
+    if(!ok())return;
+    for(const o of out){const [t,c]=Array.isArray(o)?o:[o,""];line(side,c?`<span class="${c}">${esc(t)}</span>`:esc(t));if(!instant&&!reduce)await sleep(70);}
+    s.fx&&s.fx();syncScene();
+    line(side,prompt(side));
+  }
+  function ui(){
+    $("caption").textContent=idx===0?"Press Next step to start. The Linux VM has no firewall rules yet.":S[idx-1].cap;
+    $("stepno").textContent=`Step ${idx} of ${S.length}`;
+    $("next").disabled=busy||idx>=S.length;$("back").disabled=idx===0;
+    $("play").textContent=playing?"❚❚ Stop":"Play all";
+    document.querySelectorAll("#steps button").forEach((b,i)=>{b.classList.toggle("done",i<idx);b.classList.toggle("cur",i===idx-1);});
+  }
+  function jump(n){ // rebuild instantly up to step n
+    gen++;busy=false;playing=false;clearPackets();fwd.classList.remove("flow");
+    st.root=false;st.rule=false;resetTerms();syncScene();$("bigx").classList.add("off");
+    idx=0;for(let i=0;i<n;i++){idx=n;run(i,true);}idx=n;
+    ui();
+  }
+  async function next(){
+    if(busy||idx>=S.length)return;busy=true;idx++;ui();
+    await run(idx-1,false);busy=false;ui();
+  }
+  async function playAll(){
+    if(playing){playing=false;ui();return;}
+    if(idx>=S.length)jump(0);
+    playing=true;ui();const g=gen;
+    while(playing&&idx<S.length&&g===gen){await next();if(!playing||g!==gen)break;await sleep(reduce?600:1400);}
+    playing=false;ui();
+  }
+
+  // steps list
+  const ol=$("steps");
+  S.forEach((s,i)=>{const li=document.createElement("li");const b=document.createElement("button");b.type="button";
+    b.style.setProperty("--c",s.side==="l"?"var(--linux)":"var(--win)");
+    const short=s.cmd.length>26?s.cmd.slice(0,24)+"…":s.cmd;
+    b.innerHTML=`<span class="dot"></span><span class="n">${i+1}</span>${esc(short)}`;b.title=s.cmd;
+    b.addEventListener("click",()=>jump(i+1));li.appendChild(b);ol.appendChild(li);});
+
+  $("next").addEventListener("click",next);
+  $("back").addEventListener("click",()=>jump(Math.max(0,idx-1)));
+  $("restart").addEventListener("click",()=>jump(0));
+  $("play").addEventListener("click",playAll);
+  jump(0);
+})();
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

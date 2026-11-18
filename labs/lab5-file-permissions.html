@@ -1,0 +1,329 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Linux File Permissions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: one stage that changes scene by scene (like slides), controls on top; user/group/others keep the same three colours on every scene */
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --line:#d5dbe6; --fg:#1c2230; --muted:#5b6578;
+  --accent:#1d4ed8; --accent-soft:#e3eafc;
+  --u:#2563c9; --u-soft:#dfe9fb; --g:#b7791f; --g-soft:#fbf0dc; --o:#c2362f; --o-soft:#fbe3e1;
+  --on:#145c2a; --on-soft:#dff3e4;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f131b; --surface:#171d29; --line:#2a3344; --fg:#e4e8f0; --muted:#97a1b4;
+  --accent:#7aa2ff; --accent-soft:#1d2a47;
+  --u:#7aa7f5; --u-soft:#1b2a45; --g:#e5b45c; --g-soft:#3a2d14; --o:#f08b84; --o-soft:#3d1c1b;
+  --on:#8fe0a8; --on-soft:#163322; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f131b; --surface:#171d29; --line:#2a3344; --fg:#e4e8f0; --muted:#97a1b4;
+  --accent:#7aa2ff; --accent-soft:#1d2a47;
+  --u:#7aa7f5; --u-soft:#1b2a45; --g:#e5b45c; --g-soft:#3a2d14; --o:#f08b84; --o-soft:#3d1c1b;
+  --on:#8fe0a8; --on-soft:#163322; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);letter-spacing:.02em;text-transform:uppercase;margin:0;line-height:1.05}
+header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+code,.mono{font-family:var(--mono)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:6px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button:disabled{opacity:.45;cursor:default}
+.counter{font:600 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font-size:12.5px;padding:5px 10px}
+.tab.now{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px clamp(16px,3vw,32px) 28px;min-height:520px;display:flex;flex-direction:column;gap:18px}
+.eyebrow{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.stage h2{font-family:var(--display);font-size:clamp(26px,3.4vw,34px);margin:2px 0 0;line-height:1.1;text-wrap:balance}
+.lead{margin:0;max-width:68ch;color:var(--muted)}
+.lead code{color:var(--fg);background:var(--accent-soft);padding:1px 5px;border-radius:4px;font-size:.92em}
+.remember{border-left:3px solid var(--accent);padding:8px 12px;background:var(--accent-soft);border-radius:0 6px 6px 0;font-weight:500;max-width:70ch}
+.remember b{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;display:block;color:var(--accent)}
+/* entry animation */
+.in{animation:rise .5s both;animation-delay:calc(var(--i,0)*120ms)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.scroll{overflow-x:auto;padding-bottom:4px}
+/* ls -l line */
+.lsline{display:flex;gap:10px;font:600 clamp(15px,2.2vw,24px) var(--mono);white-space:nowrap;align-items:center;padding:12px 4px}
+.lsline span{padding:4px 6px;border-radius:5px;border:2px solid transparent;transition:background .3s,border-color .3s}
+.lsline span.hl{background:var(--accent-soft);border-color:var(--accent)}
+.perm-in{display:inline-flex;gap:0}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.legend div{border:1px solid var(--line);border-radius:6px;padding:8px 10px;transition:background .3s,border-color .3s}
+.legend div.hl{background:var(--accent-soft);border-color:var(--accent)}
+.legend b{font-family:var(--mono);display:block}
+.legend small{color:var(--muted)}
+/* permission cells */
+.cells{display:inline-flex;gap:6px;align-items:flex-end;flex-wrap:nowrap}
+.trip{display:flex;flex-direction:column;align-items:center;gap:4px}
+.trip .row{display:flex;gap:3px}
+.c{width:clamp(30px,4.6vw,46px);height:clamp(38px,5.6vw,56px);display:grid;place-items:center;font:700 clamp(18px,2.6vw,28px) var(--mono);border-radius:6px;border:2px solid var(--line);background:var(--bg);transition:background .35s,border-color .35s,transform .35s,color .35s}
+.c.type{border-style:dashed}
+.u .c{border-color:var(--u)} .u .c.on{background:var(--u-soft);color:var(--u)}
+.g .c{border-color:var(--g)} .g .c.on{background:var(--g-soft);color:var(--g)}
+.o .c{border-color:var(--o)} .o .c.on{background:var(--o-soft);color:var(--o)}
+.c.off{color:var(--muted)}
+.c.flip{animation:flip .6s}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+.who{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.u .who{color:var(--u)} .g .who{color:var(--g)} .o .who{color:var(--o)}
+.digit{font:700 26px var(--mono)}
+.u .digit{color:var(--u)} .g .digit{color:var(--g)} .o .digit{color:var(--o)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
+.box{border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+/* type examples */
+.types{display:flex;flex-direction:column;gap:10px}
+.trow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font:600 clamp(14px,1.9vw,19px) var(--mono)}
+.trow .first{display:inline-grid;place-items:center;width:1.8em;height:1.8em;border-radius:6px;background:var(--accent-soft);color:var(--accent);border:2px solid var(--accent)}
+.trow .label{font:500 14px var(--body);color:var(--muted)}
+/* weights */
+.weights{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.wcell{display:flex;flex-direction:column;align-items:center;gap:4px}
+.wcell .c{width:60px;height:64px}
+.wcell .w{font:700 20px var(--mono);color:var(--muted);transition:color .3s}
+.wcell.on .w{color:var(--on)}
+.wcell.on .c{background:var(--on-soft);border-color:var(--on);color:var(--on)}
+.sum{font:700 clamp(22px,3vw,30px) var(--mono);font-variant-numeric:tabular-nums}
+table.oct{border-collapse:collapse;font:14px var(--mono);width:100%;font-variant-numeric:tabular-nums}
+.oct th{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
+.oct td{padding:5px 8px;border-bottom:1px solid var(--line);transition:background .3s}
+.oct td:last-child{font-family:var(--body)}
+.oct tr.hl td{background:var(--on-soft);color:var(--on);font-weight:600}
+/* decode */
+.decode{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:640px}
+.dcol{border:2px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--mono)}
+.dcol.u{border-color:var(--u)} .dcol.g{border-color:var(--g)} .dcol.o{border-color:var(--o)}
+.dcol .big{font:700 40px var(--mono)}
+.dcol.u .big{color:var(--u)} .dcol.g .big{color:var(--g)} .dcol.o .big{color:var(--o)}
+.mini{display:grid;grid-template-columns:repeat(3,1.6em);text-align:center;gap:2px 4px;font-size:15px}
+.mini .h{color:var(--muted);font-size:12px}
+.mini .b1{font-weight:700;color:var(--fg)} .mini .b0{color:var(--muted)}
+.res{font-weight:700;font-size:20px}
+.arrow{color:var(--muted);font-size:12px}
+.cmd{font:600 clamp(16px,2.2vw,22px) var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 14px;display:inline-block}
+.cmd .pr{color:var(--accent)}
+/* before after */
+.ba{display:flex;flex-direction:column;gap:14px}
+.ba .lab{font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);width:70px}
+.barow{display:flex;gap:12px;align-items:center;flex-wrap:nowrap}
+.oc{font:700 22px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+/* symbolic */
+.ops{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ops div{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.ops b{font:700 20px var(--mono);margin-right:6px}
+.exlist{display:flex;flex-wrap:wrap;gap:6px}
+.exlist button{font:600 13px var(--mono)}
+.exlist button.now{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+/* playground */
+.play{display:flex;flex-direction:column;gap:16px}
+.play .c{cursor:pointer}
+.play .c:hover{transform:translateY(-2px)}
+.out{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.out .tile{border:1px solid var(--line);border-radius:6px;padding:8px 14px}
+.out .tile small{display:block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.out .tile span{font:700 22px var(--mono)}
+input{font:700 20px var(--mono);width:5.5em;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.err{color:var(--o);font-size:13px}
+@media (prefers-reduced-motion:reduce){.in,.c.flip{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Linux File Permissions</h1>
+    <p>Read <code>ls -l</code>, convert rwx to octal, and change permissions with <code>chmod</code>. Use the buttons, the ← → keys, or Space to pause.</p>
+  </header>
+  <div class="controls">
+    <button id="prev">← Back</button>
+    <button id="pause" aria-pressed="false">❚❚ Pause</button>
+    <button id="next" class="primary">Next →</button>
+    <span class="counter" id="counter"></span>
+    <div class="tabs" id="tabs"></div>
+  </div>
+  <main class="stage" id="stage" aria-live="polite"></main>
+</div>
+
+<script>
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let timers=[], loops=[], paused=false;
+const every=(fn,ms)=>{fn(); loops.push({fn,ms}); if(!reduce&&!paused) timers.push(setInterval(fn,ms));};
+const stopIntervals=()=>{timers.forEach(clearInterval);timers=[];};
+const clearTimers=()=>{stopIntervals();loops=[];};
+function setPaused(v){
+  paused=v; stopIntervals();
+  if(!paused&&!reduce) loops.forEach(l=>timers.push(setInterval(l.fn,l.ms)));
+  const b=document.getElementById("pause");
+  b.textContent=paused?"▶ Play":"❚❚ Pause"; b.setAttribute("aria-pressed",String(paused));
+}
+const $=s=>document.querySelector(s);
+
+const WHO=["u","g","o"], WHONAME={u:"User (owner)",g:"Group",o:"Others"}, LET="rwx";
+const toBits=oct=>String(oct).padStart(3,"0").split("").flatMap(d=>[+d&4?1:0,+d&2?1:0,+d&1?1:0]);
+const toOct=b=>[0,3,6].map(i=>b[i]*4+b[i+1]*2+b[i+2]).join("");
+const toStr=b=>b.map((v,i)=>v?LET[i%3]:"-").join("");
+
+function cellsHTML(bits,{type="-",changed=[],id="",click=false}={}){
+  let h=`<div class="cells" ${id?`id="${id}"`:""}><div class="trip"><div class="row"><div class="c type">${type}</div></div><div class="who" style="color:var(--muted)">type</div></div>`;
+  WHO.forEach((w,t)=>{
+    h+=`<div class="trip ${w}"><div class="row">`;
+    for(let k=0;k<3;k++){const i=t*3+k, on=bits[i];
+      h+=`<div class="c ${on?"on":"off"} ${changed.includes(i)?"flip":""}" data-i="${i}" ${click?`role="button" tabindex="0" aria-pressed="${!!on}" aria-label="${WHONAME[w]} ${["read","write","execute"][k]}"`:""}>${on?LET[k]:"-"}</div>`;}
+    h+=`</div><div class="who">${w} · ${WHONAME[w].split(" ")[0]}</div></div>`;
+  });
+  return h+`</div>`;
+}
+const head=(eb,title,lead)=>`<div class="in" style="--i:0"><div class="eyebrow">${eb}</div><h2>${title}</h2></div><p class="lead in" style="--i:1">${lead}</p>`;
+const note=(t,i=5)=>`<div class="remember in" style="--i:${i}"><b>Remember</b>${t}</div>`;
+
+const scenes=[
+/* 1 */ {tab:"Read ls -l", render(){
+  const parts=[["-","File type","- file, d directory, l link"],["rw-","Owner permissions","what the owner can do"],["r--","Group permissions","what group members can do"],["r--","Others permissions","what everyone else can do"],["1","Links","number of hard links"],["ubuntu","Owner","user who owns the file"],["ubuntu","Group","group that owns the file"],["0","Size","in bytes"],["Apr 20 23:06","Date & time","last modified"],["temp.txt","File name",""]];
+  return {html: head("Step 1","Reading one line of ls -l","Run <code>ls -l</code> and every file gets one line. Watch the highlight move across each part of the line.")+
+    `<div class="scroll in" style="--i:2"><div class="lsline" id="ls">${parts.map((p,i)=>`<span data-i="${i}">${p[0]}</span>`).join("")}</div></div>
+    <div class="legend in" style="--i:3" id="lg">${parts.map((p,i)=>`<div data-i="${i}"><b>${p[0]}</b>${p[1]}<br><small>${p[2]}</small></div>`).join("")}</div>`+
+    note("The first 10 characters are the file type plus 9 permission letters."),
+   start(){let n=0; every(()=>{document.querySelectorAll("#ls span,#lg div").forEach(e=>e.classList.toggle("hl",+e.dataset.i===n)); n=(n+1)%10;},1300);}};
+}},
+/* 2 */ {tab:"File type", render(){
+  const rows=[["d","rwxr-xr-x  docs","Directory"],["-","rw-r--r--  temp.txt","Regular file"],["l","rwxrwxrwx  link → temp.txt","Symbolic link"]];
+  return {html: head("Step 2","The first character is the file type","Before the permissions, one character tells you what kind of thing this is.")+
+    `<div class="types">${rows.map((r,i)=>`<div class="trow in" style="--i:${i+2}"><span class="first">${r[0]}</span><span>${r[1]}</span><span class="label">${r[2]}</span></div>`).join("")}</div>`+
+    note("d = directory, - = regular file, l = symbolic link.")};
+}},
+/* 3 */ {tab:"u g o", render(){
+  return {html: head("Step 3","Three sets of rwx: User, Group, Others","The 9 permission letters split into three groups of three. Each group answers: can they read, write, execute?")+
+    `<div class="scroll in" style="--i:2">${cellsHTML(toBits(777),{id:"ugo"})}</div>
+    <div class="ops in" style="--i:3"><div><b>r</b>Readable</div><div><b>w</b>Writeable</div><div><b>x</b>Executable</div><div><b>-</b>Denied</div></div>`+
+    note("Order is always rwx, and always User → Group → Others."),
+   start(){const seq=[777,700,770,707,750,644,755];let k=0,prev=toBits(777);
+     every(()=>{const b=toBits(seq[k]);const ch=b.map((v,i)=>v!==prev[i]?i:-1).filter(i=>i>=0);
+       $("#ugo").outerHTML=cellsHTML(b,{id:"ugo",changed:ch});prev=b;k=(k+1)%seq.length;},1800);}};
+}},
+/* 4 */ {tab:"r=4 w=2 x=1", render(){
+  const desc=["No permissions","Only execute","Only write","Write and execute","Only read","Read and execute","Read and write","Read, write and execute"];
+  return {html: head("Step 4","Each letter has a number: r = 4, w = 2, x = 1","Add the numbers of the permissions that are on. Watch it count from 0 to 7: every combination of rwx gives a different digit.")+
+    `<div class="two"><div class="box in" style="--i:2" id="wbox"></div>
+     <div class="box in scroll" style="--i:3"><table class="oct" id="oct"><tr><th>Octal</th><th>Binary</th><th>rwx</th><th>Meaning</th></tr>
+     ${desc.map((d,n)=>{const b=toBits(n).slice(6);return `<tr data-n="${n}"><td>${n}</td><td>${b.join("")}</td><td>${toStr([0,0,0,0,0,0,...b]).slice(6)}</td><td>${d}</td></tr>`}).join("")}</table></div></div>`+
+    note("r = 4, w = 2, x = 1. Add them: rwx = 4+2+1 = 7, r-x = 4+1 = 5, r-- = 4."),
+   start(){let n=0; every(()=>{const b=toBits(n).slice(6);
+     $("#wbox").innerHTML=`<div class="weights">${b.map((v,k)=>`<div class="wcell ${v?"on":""}"><div class="c">${v?LET[k]:"-"}</div><div class="w">${[4,2,1][k]}</div></div>`).join("")}</div>
+       <p class="sum">${b.map((v,k)=>v?[4,2,1][k]:0).join(" + ")} = ${n}</p><p class="lead">binary <b class="mono">${b.join("")}</b> → octal <b class="mono">${n}</b></p>`;
+     document.querySelectorAll("#oct tr[data-n]").forEach(r=>r.classList.toggle("hl",+r.dataset.n===n)); n=(n+1)%8;},1500);}};
+}},
+/* 5 */ {tab:"Decode 754", render(){
+  return {html: head("Step 5","Decode chmod 754","Each digit belongs to one group. Split each digit into 4 + 2 + 1 to find which letters are on.")+
+    `<div class="decode" id="dec">${[7,5,4].map((d,t)=>{const b=toBits(d).slice(6), w=WHO[t];
+      return `<div class="dcol ${w} in" style="--i:${t+2}"><span class="who" style="color:var(--${w})">${WHONAME[w]}</span><span class="big">${d}</span>
+      <div class="mini"><span class="h">r</span><span class="h">w</span><span class="h">x</span><span>4</span><span>2</span><span>1</span>${b.map(v=>`<span class="b${v}">${v}</span>`).join("")}</div>
+      <span class="arrow">= ${b.map((v,k)=>v?[4,2,1][k]:0).join("+")}</span><span class="res">${toStr([0,0,0,0,0,0,...b]).slice(6)}</span></div>`}).join("")}</div>
+     <div class="in" style="--i:5"><span class="cmd"><span class="pr">$</span> chmod 754 filename.txt</span>&nbsp;&nbsp;<span class="mono res">→ -rwxr-xr--</span></div>`+
+    note("The full form has 4 digits, e.g. 0754. The leading digit is for special attributes (setuid, setgid, sticky). 0 means none.",6)};
+}},
+/* 6 */ {tab:"chmod 700", render(){
+  return {html: head("Step 6","Before and after: chmod 700 temp.txt","7 = rwx for the owner, 0 = nothing for group, 0 = nothing for others. Only the owner can touch the file now.")+
+    `<div class="ba"><div class="barow scroll in" style="--i:2"><span class="lab">Before</span>${cellsHTML(toBits(644))}<span class="oc">644</span></div>
+     <div class="in" style="--i:3"><span class="cmd"><span class="pr">$</span> chmod 700 temp.txt</span></div>
+     <div class="barow scroll in" style="--i:4"><span class="lab">After</span><span id="after">${cellsHTML(toBits(700))}</span><span class="oc">700</span></div></div>`+
+    note("chmod with numbers sets all 9 permissions at once."),
+   start(){let s=0; every(()=>{const b=toBits(s?700:644), p=toBits(s?644:700);
+     $("#after").innerHTML=cellsHTML(b,{changed:b.map((v,i)=>v!==p[i]?i:-1).filter(i=>i>=0)});
+     document.querySelectorAll(".oc")[1].textContent=s?"700":"644"; s^=1;},2200);}};
+}},
+/* 7 */ {tab:"+ − =", render(){
+  const ex=["g+rw","o+x","g-w","o=rx","go=rx","a-w"];
+  return {html: head("Step 7","Symbolic mode: add, remove or set","Instead of numbers you can say who, an operator, and which letters. Each example below runs on the result of the one before, starting from <code>rw-r-----</code> (640).")+
+    `<div class="ops in" style="--i:2"><div><b>u g o</b>user, group, others</div><div><b>a</b>all (ugo)</div><div><b>+</b>add</div><div><b>−</b>take away</div><div><b>=</b>set exactly</div></div>
+     <div class="exlist in" style="--i:3" id="ex">${ex.map((e,i)=>`<button data-i="${i}">chmod ${e}</button>`).join("")}</div>
+     <div class="ba in" style="--i:4"><div class="barow scroll"><span class="lab">Before</span><span id="sb"></span><span class="oc" id="sbo"></span></div>
+     <div><span class="cmd" id="scmd"></span></div>
+     <div class="barow scroll"><span class="lab">After</span><span id="sa"></span><span class="oc" id="sao"></span></div>
+     <p class="lead" id="sexp"></p></div>`+
+    note("chmod a-w file.name removes write for user, group and others. You can use wildcards, e.g. chmod g+w *.txt.",5),
+   start(){
+     const states=[toBits(640)]; ex.forEach(e=>states.push(applySym(states[states.length-1],e)));
+     let k=0;
+     const show=i=>{k=i;const b=states[i],a=states[i+1];
+       $("#sb").innerHTML=cellsHTML(b);$("#sbo").textContent=toOct(b);
+       $("#sa").innerHTML=cellsHTML(a,{changed:a.map((v,j)=>v!==b[j]?j:-1).filter(j=>j>=0)});$("#sao").textContent=toOct(a);
+       $("#scmd").innerHTML=`<span class="pr">$</span> chmod ${ex[i]} file.name`;$("#sexp").innerHTML=explain(ex[i]);
+       document.querySelectorAll("#ex button").forEach(x=>x.classList.toggle("now",+x.dataset.i===i));};
+     $("#ex").onclick=e=>{const b=e.target.closest("button");if(b){setPaused(true);show(+b.dataset.i);}};
+     every(()=>{show(k);k=(k+1)%ex.length;},3000);}};
+}},
+/* 8 */ {tab:"Try it", render(){
+  return {html: head("Step 8","Try it yourself","Click any box to switch that permission on or off, or type an octal number. The chmod commands update as you go.")+
+    `<div class="play in" style="--i:2"><div class="scroll" id="pg"></div>
+     <div class="out"><div class="tile"><small>Symbolic</small><span id="psym"></span></div><div class="tile"><small>Octal</small><span id="poct"></span></div>
+     <label class="tile"><small>Type octal</small><input id="pin" inputmode="numeric" maxlength="3" value="754" aria-label="Octal permission"></label></div>
+     <div class="err" id="perr"></div>
+     <div><span class="cmd" id="pcmd"></span></div></div>`+
+    note("Check your answer on a real system with ls -l after running chmod.",3),
+   start(){let bits=toBits(754);
+     const draw=(ch=[])=>{$("#pg").innerHTML=cellsHTML(bits,{click:true,changed:ch});$("#psym").textContent="-"+toStr(bits);$("#poct").textContent=toOct(bits);
+       $("#pcmd").innerHTML=`<span class="pr">$</span> chmod ${toOct(bits)} filename.txt`;};
+     draw();
+     const toggle=i=>{bits[i]^=1;$("#pin").value=toOct(bits);$("#perr").textContent="";draw([i]);};
+     $("#pg").onclick=e=>{const c=e.target.closest(".c[data-i]");if(c)toggle(+c.dataset.i);};
+     $("#pg").onkeydown=e=>{const c=e.target.closest(".c[data-i]");if(c&&(e.key===" "||e.key==="Enter")){e.preventDefault();toggle(+c.dataset.i);document.querySelector(`#pg .c[data-i="${c.dataset.i}"]`).focus();}};
+     $("#pin").oninput=e=>{const v=e.target.value.trim();
+       if(/^[0-7]{3}$/.test(v)){const nb=toBits(v);const ch=nb.map((x,i)=>x!==bits[i]?i:-1).filter(i=>i>=0);bits=nb;$("#perr").textContent="";draw(ch);}
+       else $("#perr").textContent=v.length===3?"Use digits 0 to 7 only.":"Type three digits, e.g. 644.";};
+   }};
+}}
+];
+
+function applySym(bits,expr){
+  const m=expr.match(/^([ugoa]+)([+\-=])([rwx]*)$/); const b=[...bits];
+  let who=m[1].includes("a")?"ugo":m[1];
+  for(const w of who){const t=WHO.indexOf(w);
+    for(let k=0;k<3;k++){const has=m[3].includes(LET[k]),i=t*3+k;
+      if(m[2]==="+"&&has)b[i]=1; if(m[2]==="-"&&has)b[i]=0; if(m[2]==="=")b[i]=has?1:0;}}
+  return b;
+}
+function explain(e){
+  const m=e.match(/^([ugoa]+)([+\-=])([rwx]*)$/);
+  const who=m[1]==="a"?"user, group and others":m[1].split("").map(w=>({u:"user",g:"group",o:"others"})[w]).join(" and ");
+  const what=m[3].split("").map(l=>({r:"read",w:"write",x:"execute"})[l]).join(" + ");
+  return m[2]==="+"?`<b>Add</b> ${what} for ${who}.`:m[2]==="-"?`<b>Take away</b> ${what} from ${who}.`:`<b>Set</b> ${who} to exactly ${what}; anything else for them is removed.`;
+}
+
+let cur=0;
+function go(i){
+  clearTimers(); cur=Math.max(0,Math.min(scenes.length-1,i));
+  const s=scenes[cur].render(); $("#stage").innerHTML=s.html; if(s.start) s.start();
+  $("#counter").textContent=`${cur+1} / ${scenes.length}`;
+  $("#pause").disabled=reduce||loops.length===0;
+  $("#prev").disabled=cur===0; $("#next").disabled=cur===scenes.length-1;
+  $("#tabs").innerHTML=scenes.map((x,k)=>`<button class="tab ${k===cur?"now":""}" data-i="${k}">${k+1}. ${x.tab}</button>`).join("");
+}
+$("#pause").onclick=()=>setPaused(!paused);
+$("#prev").onclick=()=>go(cur-1); $("#next").onclick=()=>go(cur+1);
+$("#tabs").onclick=e=>{const b=e.target.closest(".tab");if(b)go(+b.dataset.i);};
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;
+  if(e.key==="ArrowRight")go(cur+1); if(e.key==="ArrowLeft")go(cur-1);
+  if(e.key===" "&&e.target===document.body){e.preventDefault();if(!$("#pause").disabled)setPaused(!paused);}});
+go(0);
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

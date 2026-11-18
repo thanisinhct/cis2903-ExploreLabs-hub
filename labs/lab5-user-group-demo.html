@@ -1,0 +1,317 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lab 5 User &amp; Group Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: terminal + lesson on the left, the live system files (/etc/passwd, shadow, group, /home) on the right, so each command's effect is visible beside it */
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --line:#d5dbe6; --fg:#1c2230; --muted:#5b6578;
+  --accent:#1d4ed8; --accent-soft:#e3eafc;
+  --term-bg:#141a26; --term-fg:#d7deea; --term-dim:#7d889c; --prompt:#7fb2ff;
+  --add-bg:#dff3e4; --add-fg:#145c2a; --del-bg:#fbe3e3; --del-fg:#8f1d1d;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f131b; --surface:#171d29; --line:#2a3344; --fg:#e4e8f0; --muted:#97a1b4;
+  --accent:#7aa2ff; --accent-soft:#1d2a47;
+  --term-bg:#0a0d14; --term-fg:#d7deea; --term-dim:#6f7a8e; --prompt:#7fb2ff;
+  --add-bg:#163322; --add-fg:#8fe0a8; --del-bg:#3a1a1c; --del-fg:#f4a3a3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f131b; --surface:#171d29; --line:#2a3344; --fg:#e4e8f0; --muted:#97a1b4;
+  --accent:#7aa2ff; --accent-soft:#1d2a47;
+  --term-bg:#0a0d14; --term-fg:#d7deea; --term-dim:#6f7a8e; --prompt:#7fb2ff;
+  --add-bg:#163322; --add-fg:#8fe0a8; --del-bg:#3a1a1c; --del-fg:#f4a3a3; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);letter-spacing:.02em;text-transform:uppercase;margin:0;line-height:1.05;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:6px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button:disabled{opacity:.45;cursor:default}
+.counter{font:600 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.dots{display:flex;flex-wrap:wrap;gap:5px;flex:1 1 200px;justify-content:flex-end}
+.dot{width:22px;height:22px;padding:0;border-radius:50%;font:600 10px var(--mono);display:grid;place-items:center}
+.dot.done{background:var(--accent-soft);border-color:var(--accent-soft)}
+.dot.now{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.left{display:flex;flex-direction:column;gap:14px;min-width:0}
+.term{background:var(--term-bg);color:var(--term-fg);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.term-bar{display:flex;gap:6px;align-items:center;padding:8px 12px;font:12px var(--mono);color:var(--term-dim);border-bottom:1px solid #ffffff14}
+.term-bar i{width:10px;height:10px;border-radius:50%;background:#ffffff26;display:inline-block}
+.term-body{font:13.5px/1.55 var(--mono);padding:12px 14px;height:330px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.p{color:var(--prompt)} .o{color:var(--term-dim)} .o.hi{color:var(--term-fg)}
+.cur{display:inline-block;width:.6em;background:var(--term-fg);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.lesson{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.lesson .eyebrow{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lesson h2{font-family:var(--display);font-size:26px;margin:0;line-height:1.1;text-wrap:balance}
+.lesson code{font-family:var(--mono);font-size:.9em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.lesson p{margin:0;max-width:65ch}
+.remember{border-left:3px solid var(--accent);padding:6px 12px;background:var(--accent-soft);border-radius:0 6px 6px 0;font-weight:500}
+.remember b{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:block;color:var(--accent)}
+.right{display:flex;flex-direction:column;gap:12px;min-width:0}
+.file{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.file h3{margin:0;display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:8px 12px;border-bottom:1px solid var(--line);font:600 13px var(--mono)}
+.file h3 span{font:500 12px var(--body);color:var(--muted)}
+.file.flash h3{background:var(--accent-soft)}
+.lines{font:12.5px/1.7 var(--mono);padding:6px 0;overflow-x:auto}
+.ln{padding:0 12px;white-space:pre}
+.ln.add{background:var(--add-bg);color:var(--add-fg)}
+.ln.del{background:var(--del-bg);color:var(--del-fg);text-decoration:line-through}
+.ln.empty{color:var(--muted);font-style:italic}
+.fields{display:flex;flex-wrap:wrap;gap:4px;padding:4px 12px 10px;font:11px var(--mono)}
+.fields span{border:1px solid var(--line);border-radius:4px;padding:2px 6px;color:var(--muted)}
+.fields span b{color:var(--fg);font-weight:600}
+.perm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 12px 12px}
+.perm div{border:1px solid var(--line);border-radius:6px;padding:6px 8px;text-align:center}
+.perm .who{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.perm .digit{font:700 22px var(--mono);color:var(--accent)}
+.perm .bits{font:600 14px var(--mono)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend .a::before{background:var(--add-bg);border:1px solid var(--add-fg)}
+.legend .d::before{background:var(--del-bg);border:1px solid var(--del-fg)}
+@media (prefers-reduced-motion:reduce){.cur{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Lab 5 · Users, Groups &amp; Permissions</h1>
+    <p>Step through each command and watch what changes in <code>/etc/passwd</code>, <code>/etc/shadow</code>, <code>/etc/group</code> and <code>/home</code>. Use the buttons or the ← → keys.</p>
+  </header>
+
+  <div class="controls">
+    <button id="prev">← Back</button>
+    <button id="next" class="primary">Run next command →</button>
+    <button id="play">▶ Auto-play</button>
+    <button id="reset">Reset</button>
+    <span class="counter" id="counter"></span>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <div class="grid">
+    <div class="left">
+      <div class="term">
+        <div class="term-bar"><i></i><i></i><i></i>&nbsp; root@cis2903-lab: ~</div>
+        <div class="term-body" id="term"></div>
+      </div>
+      <div class="lesson" id="lesson"></div>
+    </div>
+    <div class="right">
+      <div class="legend"><span class="a">added / changed by this command</span><span class="d">removed by this command</span></div>
+      <div class="file" id="f-passwd"><h3>/etc/passwd <span>user account details</span></h3><div class="lines"></div><div class="fields">
+        <span><b>1</b> username</span><span><b>2</b> x = password in shadow</span><span><b>3</b> UID</span><span><b>4</b> GID</span><span><b>5</b> comment</span><span><b>6</b> home dir</span><span><b>7</b> shell</span></div></div>
+      <div class="file" id="f-shadow"><h3>/etc/shadow <span>encrypted password info (root only)</span></h3><div class="lines"></div></div>
+      <div class="file" id="f-group"><h3>/etc/group <span>group details · name:x:GID:members</span></h3><div class="lines"></div></div>
+      <div class="file" id="f-home"><h3>ls -ld /root /home/* <span>home directories</span></h3><div class="lines"></div></div>
+      <div class="file" id="f-file"><h3>ls -l file.txt <span>permissions &amp; ownership</span></h3><div class="lines"></div><div class="perm" id="perm"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const HASH_ROOT = "$6$Qm1x...kD9/";
+const init = () => ({
+  users:[{name:"root",uid:0,gid:0,home:"/root",comment:"root",pw:HASH_ROOT}],
+  groups:[{name:"root",gid:0,members:[]}],
+  file:null
+});
+function addUser(s,name,id){
+  s.users.push({name,uid:id,gid:id,home:"/home/"+name,comment:"",pw:"!!"});
+  s.groups.push({name,gid:id,members:[]});
+}
+function lsl(s){
+  if(!s.file) return "";
+  const f=s.file, o=s.users.find(u=>u.uid===f.uid), g=s.groups.find(x=>x.gid===f.gid);
+  return `${toRwx(f.perm)} 1 ${o?o.name:f.uid} ${g?g.name:f.gid} 0 Oct 26 15:20 file.txt`;
+}
+function toRwx(p){return "-"+String(p).split("").map(d=>{d=+d;return (d&4?"r":"-")+(d&2?"w":"-")+(d&1?"x":"-")}).join("")}
+
+const steps = [
+ {cmd:"whoami; pwd", out:()=> "root\n/root",
+  eyebrow:"Before we start", title:"Work as the root user",
+  text:"Creating and deleting users and groups needs administrator rights, so we are logged in as <code>root</code>. <code>pwd</code> shows root's home directory.",
+  note:"Home directory of the root user is /root, not /home/root.", op:()=>{}},
+ {cmd:"cat /etc/passwd", out:s=>s.users.map(passwdLine).join("\n"),
+  eyebrow:"Important file 1", title:"/etc/passwd holds user account details",
+  text:"Each line is one user, split into 7 fields by colons. Look at the field guide under the passwd panel. The second field is <code>x</code>, which means the real password is stored in <code>/etc/shadow</code>.",
+  note:"cat /etc/passwd → user account details.", op:()=>{}},
+ {cmd:"useradd ali", out:()=> "",
+  eyebrow:"useradd", title:"Create a new user",
+  text:"One command, four changes: a new line in <code>/etc/passwd</code>, a new line in <code>/etc/shadow</code>, a new group <code>ali</code> in <code>/etc/group</code>, and a new home directory <code>/home/ali</code>.",
+  note:"Each user gets their own group with the same name. We call it the default group.", op:s=>addUser(s,"ali",1001)},
+ {cmd:"passwd ali", out:()=> "Changing password for user ali.\nNew password: \nRetype new password: \npasswd: all authentication tokens updated successfully.",
+  eyebrow:"passwd", title:"Assign a password",
+  text:"Before this step ali's shadow entry was <code>!!</code>, meaning no password set, so ali could not log in. Now the second field holds the encrypted (hashed) password. The typed password is never shown on screen.",
+  note:"cat /etc/shadow → encrypted password information. Only root can read it.", op:s=>{s.users.find(u=>u.name==="ali").pw="$6$Tz8p...Lw2."}},
+ {cmd:"useradd ahmed", out:()=> "",
+  eyebrow:"useradd", title:"Create a second user",
+  text:"ahmed gets the next free UID and GID (1002), a default group <code>ahmed</code>, and the home directory <code>/home/ahmed</code>.",
+  note:"Normal users live under /home: ali → /home/ali, ahmed → /home/ahmed.", op:s=>addUser(s,"ahmed",1002)},
+ {cmd:"ls /home", out:()=> "ahmed  ali",
+  eyebrow:"Check", title:"Home directories for normal users",
+  text:"Every normal user has a folder inside <code>/home</code>. Root is the exception, with its home at <code>/root</code>.",
+  note:"/root for root, /home/&lt;username&gt; for everyone else.", op:()=>{}},
+ {cmd:"groupadd cis", out:()=> "",
+  eyebrow:"groupadd", title:"Create a new group",
+  text:"A new line appears in <code>/etc/group</code> with GID 1003. The last field is empty because the group has no members yet.",
+  note:"cat /etc/group → group details.", op:s=>s.groups.push({name:"cis",gid:1003,members:[]})},
+ {cmd:"usermod -aG cis ali", out:()=> "",
+  eyebrow:"usermod", title:"Add a user to a group",
+  text:"<code>-G cis</code> sets ali's extra (supplementary) groups, and <code>-a</code> means append. Without <code>-a</code>, ali would be removed from any other extra groups. ali now appears at the end of the <code>cis</code> line.",
+  note:"Always use -aG together when adding a user to a group.", op:s=>s.groups.find(g=>g.name==="cis").members.push("ali")},
+ {cmd:"id ali", out:()=> "uid=1001(ali) gid=1001(ali) groups=1001(ali),1003(cis)",
+  eyebrow:"Check", title:"Default group vs extra groups",
+  text:"<code>gid=1001(ali)</code> is ali's default (primary) group. <code>groups=</code> lists every group ali belongs to, including <code>cis</code>.",
+  note:"Default group = the user's own group, created by useradd.", op:()=>{}},
+ {cmd:"touch file.txt; ls -l file.txt", out:s=>lsl(s),
+  eyebrow:"Setup", title:"Create a file to practise on",
+  text:"root created the file, so root owns it and its group is <code>root</code>. The default permissions are <code>644</code>, shown as <code>rw-r--r--</code>.",
+  note:"ls -l shows permissions, owner and group.", op:s=>{s.file={perm:644,uid:0,gid:0}}},
+ {cmd:"chmod 755 file.txt; ls -l file.txt", out:s=>lsl(s),
+  eyebrow:"chmod", title:"Change permissions",
+  text:"Each digit is one set of three permissions: read = 4, write = 2, execute = 1. Add them up: 7 = 4+2+1 = <code>rwx</code>, 5 = 4+1 = <code>r-x</code>. So 755 gives the owner everything and everyone else read and execute.",
+  note:"chmod 755 filename/directory → owner rwx, group r-x, others r-x.", op:s=>{s.file.perm=755}},
+ {cmd:"chown ali:cis file.txt; ls -l file.txt", out:s=>lsl(s),
+  eyebrow:"chown", title:"Change owner and group",
+  text:"The format is <code>owner:group</code>. ali is now the owner and <code>cis</code> is the group. Permissions do not change.",
+  note:"chown ali:cis file.txt → owner ali, group cis.", op:s=>{s.file.uid=1001;s.file.gid=1003}},
+ {cmd:"userdel -r ahmed", out:()=> "",
+  eyebrow:"userdel", title:"Delete a user and their home",
+  text:"ahmed is removed from <code>/etc/passwd</code> and <code>/etc/shadow</code>, his default group is removed, and <code>-r</code> also deletes <code>/home/ahmed</code>. With plain <code>userdel ahmed</code>, the home folder would be left behind.",
+  note:"userdel -r = delete the user including the home directory.", op:s=>{s.users=s.users.filter(u=>u.name!=="ahmed");s.groups=s.groups.filter(g=>g.name!=="ahmed")}},
+ {cmd:"groupdel cis; ls -l file.txt", out:s=>lsl(s),
+  eyebrow:"groupdel", title:"Delete a group",
+  text:"The <code>cis</code> line disappears from <code>/etc/group</code>. Look at file.txt: its group now shows the number <code>1003</code>, because Linux stores the GID on the file and there is no longer a name for it.",
+  note:"groupdel cis → delete or remove the group. Files keep the old GID number.", op:s=>{s.groups=s.groups.filter(g=>g.name!=="cis")}}
+];
+
+function passwdLine(u){return `${u.name}:x:${u.uid}:${u.gid}:${u.comment}:${u.home}:/bin/bash`}
+function shadowLine(u){return `${u.name}:${u.pw}:20387:0:99999:7:::`}
+function groupLine(g){return `${g.name}:x:${g.gid}:${g.members.join(",")}`}
+function homeLine(u,s){
+  const g=s.groups.find(x=>x.gid===u.gid);
+  return `drwx------ ${u.name} ${g?g.name:u.gid} ${u.home}`;
+}
+
+// states[i] = state after step i; states[-1] handled as init
+const states=[]; {let s=init(); for(const st of steps){st.op(s); states.push(JSON.parse(JSON.stringify(s)));}}
+const stateAt=i=> i<0?init():states[i];
+
+function rows(s){return {
+  passwd:s.users.map(u=>[u.name,passwdLine(u)]),
+  shadow:s.users.map(u=>[u.name,shadowLine(u)]),
+  group:s.groups.map(g=>[g.name,groupLine(g)]),
+  home:s.users.map(u=>[u.name,homeLine(u,s)]),
+  file:s.file?[["f",lsl(s)]]:[]
+}}
+function diff(prev,cur){
+  const out=[], cm=new Map(cur), pm=new Map(prev);
+  for(const [k,t] of prev){
+    if(!cm.has(k)) out.push(["del",t]);
+    else if(cm.get(k)!==t){out.push(["del",t]);out.push(["add",cm.get(k)]);}
+    else out.push(["",t]);
+  }
+  for(const [k,t] of cur) if(!pm.has(k)) out.push(["add",t]);
+  return out;
+}
+const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+let idx=-1, playing=null, typer=null;
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const term=document.getElementById("term");
+
+function renderFiles(at=idx,withDiff=true){
+  const prev=rows(stateAt(at-1)), cur=rows(stateAt(at));
+  for(const key of ["passwd","shadow","group","home","file"]){
+    const box=document.getElementById("f-"+key);
+    const d=(at<0||!withDiff)?cur[key].map(([,t])=>["",t]):diff(prev[key],cur[key]);
+    box.querySelector(".lines").innerHTML = d.length? d.map(([c,t])=>`<div class="ln ${c}">${esc(t)}</div>`).join("")
+      : `<div class="ln empty">${key==="file"?"file.txt has not been created yet":"(empty)"}</div>`;
+    box.classList.toggle("flash", d.some(([c])=>c));
+  }
+  const f=stateAt(at).file, perm=document.getElementById("perm");
+  perm.hidden=!f;
+  if(f){const who=["Owner (u)","Group (g)","Others (o)"];
+    perm.innerHTML=String(f.perm).split("").map((d,i)=>`<div><div class="who">${who[i]}</div><div class="digit">${d}</div><div class="bits">${toRwx(d).slice(1)}</div></div>`).join("");}
+}
+function renderLesson(){
+  const L=document.getElementById("lesson");
+  if(idx<0){L.innerHTML=`<div class="eyebrow">Ready</div><h2>Press “Run next command” to begin</h2><p>The right side shows the system files as they are right now: only the root user exists. Each command will highlight exactly which lines it adds, changes or removes.</p>`;return;}
+  const s=steps[idx];
+  L.innerHTML=`<div class="eyebrow">Step ${idx+1} · ${s.eyebrow}</div><h2>${s.title}</h2><p>${s.text}</p><div class="remember"><b>Remember</b>${s.note}</div>`;
+}
+function histHTML(upto){
+  let h="";
+  for(let i=0;i<=upto;i++){const s=steps[i], o=s.out(states[i]);
+    h+=`<span class="p">[root@cis2903-lab ~]#</span> ${esc(s.cmd)}\n`+(o?`<span class="o${i===upto?" hi":""}">${esc(o)}</span>\n`:"");}
+  return h;
+}
+function renderTerm(animate){
+  clearInterval(typer);
+  const prompt=`<span class="p">[root@cis2903-lab ~]#</span> `;
+  if(idx<0){term.innerHTML=prompt+`<span class="cur">&nbsp;</span>`;return;}
+  const before=histHTML(idx-1), s=steps[idx], o=s.out(states[idx]);
+  const finish=()=>{term.innerHTML=histHTML(idx)+prompt+`<span class="cur">&nbsp;</span>`;term.scrollTop=term.scrollHeight;renderFiles();};
+  if(!animate||reduce){finish();return;}
+  let n=0; renderFilesHold();
+  typer=setInterval(()=>{n++;
+    term.innerHTML=before+prompt+esc(s.cmd.slice(0,n))+`<span class="cur">&nbsp;</span>`;term.scrollTop=term.scrollHeight;
+    if(n>=s.cmd.length){clearInterval(typer);setTimeout(finish,350);}
+  },55);
+}
+// while typing, keep the files showing the previous state
+function renderFilesHold(){renderFiles(idx-1,false)}
+
+function renderDots(){
+  const D=document.getElementById("dots");
+  D.innerHTML=steps.map((s,i)=>`<button class="dot ${i<idx?"done":i===idx?"now":""}" data-i="${i}" title="${esc(s.cmd)}" aria-label="Go to step ${i+1}: ${esc(s.cmd)}">${i+1}</button>`).join("");
+}
+function go(i,animate){
+  idx=Math.max(-1,Math.min(steps.length-1,i));
+  document.getElementById("counter").textContent=`${idx+1} / ${steps.length}`;
+  document.getElementById("prev").disabled=idx<0;
+  document.getElementById("next").disabled=idx>=steps.length-1;
+  renderLesson(); renderDots(); renderTerm(animate);
+  if(idx<0||!animate||reduce) renderFiles();
+}
+function stop(){clearInterval(playing);playing=null;document.getElementById("play").textContent="▶ Auto-play";}
+document.getElementById("next").onclick=()=>{stop();go(idx+1,true)};
+document.getElementById("prev").onclick=()=>{stop();go(idx-1,false)};
+document.getElementById("reset").onclick=()=>{stop();go(-1,false)};
+document.getElementById("dots").onclick=e=>{const b=e.target.closest(".dot");if(b){stop();go(+b.dataset.i,false)}};
+document.getElementById("play").onclick=()=>{
+  if(playing){stop();return;}
+  if(idx>=steps.length-1) go(-1,false);
+  document.getElementById("play").textContent="❚❚ Pause";
+  go(idx+1,true);
+  playing=setInterval(()=>{if(idx>=steps.length-1){stop();return;} go(idx+1,true);},6500);
+};
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowRight"&&idx<steps.length-1){stop();go(idx+1,true)}
+  if(e.key==="ArrowLeft"&&idx>-1){stop();go(idx-1,false)}
+});
+go(-1,false);
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

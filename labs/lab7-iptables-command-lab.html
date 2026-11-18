@@ -1,0 +1,654 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>iptables Command Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one simulated Linux host. Step rail on top; command anatomy beside the root terminal; live traffic test; the three chains as tables; deck cheat sheet last. */
+:root{
+  --bg:#edf1f5; --surface:#ffffff; --ink:#142131; --muted:#566476; --line:#cfd8e2; --soft:#f5f7fa;
+  --accent:#e2620e; --accept:#1d9a52; --drop:#d63a33; --match:#2f6fd0;
+  --in:#1f6fc5; --out:#8a46cc; --fwd:#0d8a85;
+  --screen:#1b2230; --screen-ink:#9fe6b8;
+  --term:#2b0f24; --term-ink:#f2e9ee; --term-dim:#b79bad; --term-green:#8ae29d; --term-red:#ff8f87;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1520; --surface:#141f2d; --ink:#e2e9f1; --muted:#93a2b4; --line:#26364a; --soft:#101a26;
+  --accent:#ff8a3d; --accept:#3ccb7a; --drop:#ff5f57; --match:#6aa8ff;
+  --in:#5aa6ff; --out:#bf8bff; --fwd:#3fcfc6; --screen:#0a0f17; --term:#1d0a18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1520; --surface:#141f2d; --ink:#e2e9f1; --muted:#93a2b4; --line:#26364a; --soft:#101a26;
+  --accent:#ff8a3d; --accept:#3ccb7a; --drop:#ff5f57; --match:#6aa8ff;
+  --in:#5aa6ff; --out:#bf8bff; --fwd:#3fcfc6; --screen:#0a0f17; --term:#1d0a18; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:26px 60px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:20px}
+.eyebrow{font:500 13px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(32px,5.4vw,54px)/1.02 var(--f-display);margin:8px 0 0;text-wrap:balance}
+h1 span{color:var(--accent)}
+h2{font:700 20px/1.2 var(--f-display);margin:0;letter-spacing:.03em}
+.lede{margin:10px 0 0;color:var(--muted);max-width:70ch}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+
+/* controls + rail */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:500 14px/1 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.stepno{font:500 13px/1 var(--f-mono);color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.rail{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.group .gl{font:600 11.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);width:150px;flex:none}
+.rail button{font:500 12.5px/1 var(--f-mono);border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:7px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
+.rail button.done{color:var(--ink);background:var(--soft)}
+.rail button.cur{border-color:var(--accent);color:#fff;background:var(--accent)}
+
+/* explain + terminal */
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px}
+.explain{display:flex;flex-direction:column;gap:12px;min-width:0}
+.explain .slide{font:500 12px/1 var(--f-mono);color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+.explain h3{margin:0;font:700 24px/1.15 var(--f-display);text-wrap:balance}
+.explain p{margin:0}
+.anat{display:flex;flex-wrap:wrap;gap:8px 6px;padding:12px;background:var(--soft);border-radius:8px;border:1px dashed var(--line)}
+.tok{display:flex;flex-direction:column;align-items:flex-start;gap:5px;opacity:0;transform:translateY(6px);animation:tokin .35s ease forwards}
+.tok code{font:600 15px/1 var(--f-mono);padding:7px 8px;border-radius:5px;border:2px solid var(--tc);color:var(--tc);background:var(--surface);white-space:nowrap}
+.tok small{font:500 11.5px/1.2 var(--f-body);color:var(--muted);max-width:13ch}
+@keyframes tokin{to{opacity:1;transform:none}}
+.ex{font-size:14.5px;padding:10px 12px;border-left:3px solid var(--match);background:var(--soft);border-radius:0 6px 6px 0}
+.ex b{font:600 11.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--match);display:block;margin-bottom:4px}
+.warn{border-left-color:var(--drop)} .warn b{color:var(--drop)}
+
+.tw{display:flex;flex-direction:column;min-width:0;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.tbar{display:flex;gap:8px;align-items:center;padding:8px 12px;background:#3b1430;color:#f3dfe9;font:500 12.5px/1 var(--f-mono)}
+.tbar i{width:11px;height:11px;border-radius:50%;background:#e95420;display:inline-block}
+.tbar i:nth-child(2){background:#8a7684}.tbar i:nth-child(3){background:#8a7684}
+.tbar span{margin-left:6px}
+.term{background:var(--term);color:var(--term-ink);font:400 13px/1.55 var(--f-mono);padding:12px 14px;height:330px;overflow:auto;white-space:pre;margin:0;font-variant-numeric:tabular-nums}
+.term .pr{color:var(--term-green);font-weight:600} .term .dim{color:var(--term-dim)} .term .err{color:var(--term-red)}
+.cursor{display:inline-block;width:.55em;height:1.1em;vertical-align:-.2em;background:var(--term-ink);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.cmdform{background:var(--surface);border-top:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}
+.cmdform label{font:600 11.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.cmdrow{display:flex;gap:8px;align-items:center}
+.cp{font:600 15px var(--f-mono);color:var(--muted)}
+.cmdrow input{flex:1;min-width:0;font:500 14px/1.2 var(--f-mono);padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--soft);color:var(--ink)}
+.cmdrow input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.chipsrow{display:flex;flex-wrap:wrap;gap:6px}
+.chipsrow button{font:500 12px/1 var(--f-mono);border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 9px;cursor:pointer}
+.chipsrow button:hover{border-color:var(--accent);color:var(--ink)}
+.cmdform small{color:var(--muted);font-size:12.5px}
+.cmdform code{font:500 12px var(--f-mono);background:var(--soft);padding:1px 4px;border-radius:3px}
+.t-REJECT{color:var(--drop);font-weight:600}
+/* stage */
+.stagehead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}
+.stagehead p{margin:0;color:var(--muted);font-size:14px}
+.stage{overflow-x:auto}
+.stage svg{display:block;width:100%;height:auto;min-width:600px}
+.s-head{font:700 13px var(--f-display);letter-spacing:.08em}
+.s-lab{font:600 13px var(--f-mono);fill:var(--ink)}
+.s-small{font:500 12px var(--f-mono);fill:var(--muted)}
+.s-obj{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.screen{fill:var(--screen)} .screen-t{font:500 11px var(--f-mono);fill:var(--screen-ink)}
+.lane{fill:none;stroke-width:2;stroke-dasharray:4 6;opacity:.35}
+.lane.in{stroke:var(--in)} .lane.out{stroke:var(--out)} .lane.fwd{stroke:var(--fwd);opacity:.5;stroke-dasharray:8 6}
+.h-in{fill:var(--in)} .h-out{fill:var(--out)} .h-fwd{fill:var(--fwd)}
+.gate{stroke:var(--accent);stroke-width:2;stroke-dasharray:3 5;fill:none}
+.badge{font:600 12.5px var(--f-mono)}
+.badge.ok{fill:var(--accept)} .badge.no{fill:var(--drop)}
+.pkt{stroke:var(--surface);stroke-width:2}
+.pkt.in{fill:var(--in)} .pkt.out{fill:var(--out)} .pkt.fwd{fill:var(--fwd)}
+.pkt.ok{fill:var(--accept)} .pkt.drop{fill:var(--drop)}
+.xmark line{stroke:var(--drop);stroke-width:3;stroke-linecap:round}
+
+/* chains */
+.chains{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.chain{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:8px;overflow:hidden;min-width:0;background:var(--surface)}
+.chain[data-chain="INPUT"]{--c:var(--in)} .chain[data-chain="OUTPUT"]{--c:var(--out)} .chain[data-chain="FORWARD"]{--c:var(--fwd)}
+.chead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px}
+.chead h3{margin:0;font:700 18px/1 var(--f-display);color:var(--c);letter-spacing:.05em}
+.pol{font:600 12px/1 var(--f-mono);padding:6px 8px;border-radius:4px;color:#fff}
+.pol.ACCEPT{background:var(--accept)} .pol.DROP{background:var(--drop)}
+.pol.pulse{animation:pulse .7s ease}
+@keyframes pulse{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.chain table{width:100%;border-collapse:collapse;font:500 13px/1.3 var(--f-mono);font-variant-numeric:tabular-nums}
+.chain th{text-align:left;font-weight:500;color:var(--muted);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.chain td{padding:8px 12px;border-bottom:1px solid var(--line)}
+.chain tr:last-child td{border-bottom:0}
+.t-ACCEPT{color:var(--accept);font-weight:600} .t-DROP{color:var(--drop);font-weight:600}
+.empty td{color:var(--muted);font-style:italic;font-family:var(--f-body)}
+tr.enter{animation:enter .9s ease}
+@keyframes enter{0%{background:color-mix(in srgb,var(--accent) 35%,transparent);transform:translateX(-10px)}100%{background:transparent;transform:none}}
+tr.leaving td{background:color-mix(in srgb,var(--drop) 22%,transparent);text-decoration:line-through;transition:background .2s}
+tr.hit td{background:color-mix(in srgb,var(--match) 22%,transparent)}
+.polrow td{color:var(--muted);font-family:var(--f-body);font-size:12.5px;background:var(--soft)}
+.polrow.hit td{background:color-mix(in srgb,var(--match) 22%,transparent);color:var(--ink)}
+
+.file{display:flex;flex-direction:column;gap:8px;min-width:0}
+.file pre{margin:0;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font:400 12.5px/1.5 var(--f-mono);overflow-x:auto;white-space:pre;min-height:4em}
+.file .fname{font:600 13px var(--f-mono)}
+.file.pulse pre{animation:filepulse 1s ease}
+@keyframes filepulse{0%{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}100%{}}
+.lower{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1.3fr);gap:14px}
+
+/* cheat sheet */
+.cheat{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.cc{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--surface);text-align:left;cursor:pointer;color:var(--ink);font:inherit;display:flex;flex-direction:column;gap:6px}
+.cc:hover{border-color:var(--accent)}
+.cc code{font:600 13px/1.35 var(--f-mono);overflow-wrap:anywhere}
+.cc span{font-size:13.5px;color:var(--muted)}
+.cc .sl{font:500 11px/1 var(--f-mono);letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.tips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tip{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:14.5px;min-width:0}
+.tip b{font:600 11.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:6px}
+.tip code{font:500 13px var(--f-mono);background:var(--soft);padding:1px 4px;border-radius:3px;overflow-wrap:anywhere}
+
+@media (max-width:860px){.duo,.lower,.chains,.tips{grid-template-columns:1fr}.group .gl{width:100%}}
+@media (prefers-reduced-motion:reduce){.tok{animation:none;opacity:1;transform:none}.cursor,.pol.pulse,tr.enter,.file.pulse pre{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CIS 2903 · Operating Systems · Week 11 · CLO3</div>
+    <h1>iptables <span>Command Lab</span></h1>
+    <p class="lede">Every command from the Week 11 slides, run in order on one Linux host. Each step types the command, shows the real output, updates the chains, and fires test traffic so you can see what the rule actually does.</p>
+  </header>
+
+  <section class="panel" aria-label="Steps">
+    <div class="controls">
+      <button class="btn" id="restart" type="button">↺ Restart</button>
+      <button class="btn" id="back" type="button">◀ Back</button>
+      <button class="btn primary" id="next" type="button">Next step ▶</button>
+      <button class="btn" id="play" type="button">Play all</button>
+      <button class="btn" id="test" type="button">Send test traffic</button>
+      <span class="stepno" id="stepno"></span>
+    </div>
+    <div class="rail" id="rail"></div>
+  </section>
+
+  <section class="duo">
+    <div class="panel explain" id="explain" aria-live="polite"></div>
+    <div class="tw"><div class="tbar"><i></i><i></i><i></i><span>root@ubuntu: ~</span></div><pre class="term" id="term"></pre>
+      <form class="cmdform" id="cmdform" autocomplete="off">
+        <label for="cmd">Try your own command</label>
+        <div class="cmdrow"><span class="cp">#</span><input id="cmd" type="text" spellcheck="false" placeholder="iptables -A INPUT -p tcp --dport 443 -j ACCEPT"><button class="btn primary" type="submit">Run</button></div>
+        <div class="chipsrow" id="samples"></div>
+        <small>Changes the same host as the steps. Type <code>help</code> for what this lab understands. ↑ / ↓ recall earlier commands. Back, Restart or clicking a step rebuilds from the slides.</small>
+      </form></div>
+  </section>
+
+  <section class="panel">
+    <div class="stagehead"><h2>Traffic test</h2><p>Each packet is checked against its chain, rule by rule from the top. First match wins; no match means the chain's default policy.</p></div>
+    <div class="stage">
+      <svg id="svg" viewBox="0 0 900 340" role="img" aria-label="Test packets for SSH, FTP, HTTP and HTTPS arrive on the INPUT chain, HTTP and HTTPS leave on the OUTPUT chain, and routed traffic crosses the FORWARD chain. Each lane shows whether the packet was accepted or dropped and why.">
+        <text class="s-head h-in" x="875" y="24" text-anchor="end">INCOMING → INPUT CHAIN</text>
+        <text class="s-head h-out" x="25" y="24">← OUTGOING · OUTPUT CHAIN</text>
+        <g id="lanes"></g>
+        <rect class="s-obj" x="375" y="92" width="150" height="102" rx="7"/>
+        <rect class="screen" x="385" y="102" width="130" height="82" rx="3"/>
+        <text class="screen-t" x="393" y="122">root@ubuntu:~#</text>
+        <text class="screen-t" x="393" y="142" id="scr1">IN  ACCEPT</text>
+        <text class="screen-t" x="393" y="160" id="scr2">OUT ACCEPT</text>
+        <text class="screen-t" x="393" y="178" id="scr3">FWD ACCEPT</text>
+        <path class="s-obj" d="M355 198 H545 L561 211 H339 Z"/>
+        <text class="s-small" x="450" y="232" text-anchor="middle">THIS HOST</text>
+        <path class="gate" d="M552 100 V200"/>
+        <path class="gate" d="M348 100 V200"/>
+        <path class="gate" d="M450 282 V318"/>
+        <g id="pk"></g>
+      </svg>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="chains" id="chains"></div>
+    <div class="panel file" id="file">
+      <h2>Saved file</h2>
+      <div class="fname" id="fname">rules.bak · not saved yet</div>
+      <pre id="ftext">Run iptables-save &gt; rules.bak to create it.</pre>
+    </div>
+  </section>
+
+  <section aria-label="Cheat sheet" style="display:flex;flex-direction:column;gap:12px">
+    <h2>Commands in the deck</h2>
+    <div class="cheat" id="cheat"></div>
+    <div class="tips">
+      <div class="tip"><b>-F keeps the policy</b>Flushing removes the rules but not the default policies. If INPUT is set to DROP and you flush, all incoming traffic is blocked, including your own SSH session.</div>
+      <div class="tip"><b>Real servers: allow replies</b>With INPUT on DROP, replies to the host's own outgoing requests are dropped too. Real setups add <code>iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT</code> first. This lab tests new connections only.</div>
+      <div class="tip"><b>Rule numbers</b><code>iptables -L --line-numbers</code> shows the number to use with <code>-D</code>. Numbers shift up after a delete.</div>
+      <div class="tip"><b>Names vs numbers</b><code>-L</code> shows port names (ssh, http). Add <code>-n</code> to see numbers (dpt:22, dpt:80).</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const SVC={21:"ftp",22:"ssh",23:"telnet",25:"smtp",53:"domain",80:"http",110:"pop3",143:"imap",443:"https",3306:"mysql",8080:"http-alt"};
+  const PORTBYNAME=Object.fromEntries(Object.entries(SVC).map(([k,v])=>[v,+k]));
+  const matchStr=(r,n)=>r.dport!=null?`${r.proto} dpt:${n?r.dport:(SVC[r.dport]||r.dport)}`:(r.proto&&r.proto!=="all"?r.proto:"");
+  const matches=(r,port)=>(!r.proto||r.proto==="all"||r.proto==="tcp")&&(r.dport==null||r.dport===port);
+  function rowStr(r,n){const src=n?"0.0.0.0/0":"anywhere";return (r.target.padEnd(11)+(r.proto||"all").padEnd(5)+"--  "+src.padEnd(21)+src.padEnd(21)+matchStr(r,n)).trimEnd();}
+  const CH=["INPUT","FORWARD","OUTPUT"];
+  let st;
+  const fresh=()=>({pol:{INPUT:"ACCEPT",FORWARD:"ACCEPT",OUTPUT:"ACCEPT"},rules:{INPUT:[],FORWARD:[],OUTPUT:[]},file:null});
+  const clone=o=>JSON.parse(JSON.stringify(o));
+
+  // ---------- outputs ----------
+  function listOut(nums,numeric,only){
+    const L=[];
+    (only?[only]:CH).forEach((c,ci,arr)=>{
+      L.push(`Chain ${c} (policy ${st.pol[c]})`);
+      L.push((nums?"num  ":"")+"target     prot opt source               destination");
+      st.rules[c].forEach((r,i)=>L.push((nums?String(i+1).padEnd(5):"")+rowStr(r,numeric)));
+      if(ci<arr.length-1)L.push("");
+    });
+    return L;
+  }
+  function saveText(s){
+    const L=["# Generated by iptables-save","*filter"];
+    CH.forEach(c=>L.push(`:${c} ${s.pol[c]} [0:0]`));
+    CH.forEach(c=>s.rules[c].forEach(r=>L.push(`-A ${c}`+(r.proto&&r.proto!=="all"?` -p ${r.proto}`:"")+(r.dport!=null?` -m ${r.proto} --dport ${r.dport}`:"")+` -j ${r.target}`)));
+    L.push("COMMIT","# Completed");return L.join("\n");
+  }
+
+  // ---------- steps ----------
+  const A=(c,p,t)=>({k:"add",c,r:{proto:"tcp",dport:p,target:t},cmd:`iptables -A ${c} -p tcp --dport ${p} -j ${t}`});
+  const P=(c,p)=>({k:"pol",c,p,cmd:`iptables --policy ${c} ${p}`});
+  const S=[
+    {k:"list",cmd:"iptables -L",grp:"Rule processing",slide:"Slide 7",title:"List the current rules",
+     what:"Shows every chain, its default policy and its rules. On a fresh system all three chains are empty and the policy is ACCEPT.",
+     ex:"Nothing is blocked yet. Every test packet below falls through to the ACCEPT policy."},
+    {...A("INPUT",22,"ACCEPT"),grp:"Types of chains",slide:"Slide 6",title:"INPUT chain: allow SSH",
+     what:"Appends a rule to the end of the INPUT chain. Incoming TCP traffic to port 22 jumps to ACCEPT.",
+     ex:"An admin connecting with ssh from another machine now matches rule 1."},
+    {...A("OUTPUT",80,"ACCEPT"),grp:"Types of chains",slide:"Slide 6",title:"OUTPUT chain: allow web requests",
+     what:"Appends a rule to the OUTPUT chain. Outgoing TCP traffic to port 80 (HTTP) is accepted.",
+     ex:"apt update or a browser on this host reaching an http:// site matches this rule."},
+    {...A("INPUT",21,"DROP"),grp:"Managing rules",slide:"Slide 8 example",title:"Block FTP",
+     what:"Same command shape, different port and target. Incoming FTP (port 21) is dropped.",
+     ex:"This and the next rule rebuild the INPUT chain from the slide 8 screenshot, so there is a rule 3 to delete."},
+    {...A("INPUT",443,"DROP"),grp:"Managing rules",slide:"Slide 8 example",title:"Block HTTPS",
+     what:"Appends a third INPUT rule. Incoming HTTPS (port 443) is dropped.",
+     ex:"INPUT now holds three rules: ssh ACCEPT, ftp DROP, https DROP."},
+    {k:"list",nums:true,cmd:"iptables -L --line-numbers",grp:"Managing rules",slide:"Slide 8 tip",title:"Find the rule number",
+     what:"Lists rules with their position in each chain. You need this number to delete a rule.",
+     ex:"The https DROP rule is number 3 in the INPUT chain."},
+    {k:"del",c:"INPUT",n:3,cmd:"iptables -D INPUT 3",grp:"Managing rules",slide:"Slide 8",title:"Delete rule 3 from INPUT",
+     what:"Removes the third rule of the INPUT chain. The rules below it move up one place.",
+     ex:"HTTPS is no longer matched by any rule, so it falls through to the ACCEPT policy again."},
+    {k:"save",cmd:"iptables-save > rules.bak",grp:"Managing rules",slide:"Slide 9",title:"Save the rules to a file",
+     what:"iptables-save prints the whole configuration; > redirects it into the file rules.bak. No output means it worked.",
+     ex:"Take a backup before any big change. The file content appears in the Saved file panel."},
+    {k:"flush",cmd:"iptables -F",grp:"Managing rules",slide:"Slide 10",title:"Flush all rules",
+     what:"Deletes every rule in every chain. The default policies stay as they are.",
+     ex:"All chains are empty again, matching the slide 10 screenshot."},
+    {k:"restore",cmd:"iptables-restore < rules.bak",grp:"Managing rules",slide:"Slide 9",title:"Restore from the file",
+     what:"iptables-restore reads rules from the file (< feeds the file in) and replaces the current configuration with it.",
+     ex:"The ssh, ftp and http rules are back exactly as they were saved."},
+    {k:"flush",cmd:"iptables -F",grp:"Enabling & blocking ports",slide:"Slide 10",title:"Start clean for the port exercises",
+     what:"Flush again so the next slides start from empty chains.",
+     ex:"Same command as before. The backup in rules.bak is untouched."},
+    {...P("INPUT","DROP"),grp:"Enabling & blocking ports",slide:"Slide 11",title:"Block all incoming traffic",
+     what:"Sets the INPUT chain's default policy to DROP. Anything that matches no rule is now discarded.",
+     ex:"Careful: if you were logged in over SSH, you would be locked out right now. Slide 14 fixes that.",warn:true},
+    {...P("OUTPUT","DROP"),grp:"Enabling & blocking ports",slide:"Slide 11",title:"Block all outgoing traffic",
+     what:"Default policy DROP for traffic leaving the host.",
+     ex:"The host can no longer reach anything, not even http sites."},
+    {...P("FORWARD","DROP"),grp:"Enabling & blocking ports",slide:"Slide 11",title:"Block all forwarded traffic",
+     what:"Default policy DROP for traffic routed through the host. All three chains now block by default.",
+     ex:"This is the locked-down starting point. From here you open only what you need (least privilege)."},
+    {...P("OUTPUT","ACCEPT"),grp:"Enabling & blocking ports",slide:"Slide 12",title:"Allow all outgoing traffic",
+     what:"Sets OUTPUT back to ACCEPT, so the host can start any outgoing connection.",
+     ex:"Outgoing HTTP and HTTPS work again. Incoming is still blocked."},
+    {...A("INPUT",80,"ACCEPT"),grp:"Enabling & blocking ports",slide:"Slide 13",title:"Allow incoming web traffic",
+     what:"Opens port 80 in the INPUT chain while the policy stays DROP.",
+     ex:"A web server on this host can now be reached on http. FTP and HTTPS are still dropped by the policy."},
+    {...A("INPUT",22,"ACCEPT"),grp:"Enabling & blocking ports",slide:"Slide 14",title:"Allow incoming SSH traffic",
+     what:"Opens port 22 so remote administration works again.",
+     ex:"Only SSH and HTTP get in. Everything else hits the DROP policy."},
+    {k:"list",cmd:"iptables -L",grp:"In-class activity",slide:"Slide 16",title:"Check the final configuration",
+     what:"List the rules to confirm before saving.",
+     ex:"INPUT: policy DROP with http and ssh allowed. OUTPUT: policy ACCEPT. FORWARD: policy DROP."},
+    {k:"save",cmd:"iptables-save > rules.bak",grp:"In-class activity",slide:"Slide 15 · 16",title:"Back up the finished rules",
+     what:"Save the configuration, as the best-practices slide and the in-class activity ask.",
+     ex:"For the activity, also add iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT for outgoing HTTP."}
+  ];
+
+  // ---------- anatomy ----------
+  const COL={util:"var(--muted)",act:"var(--accent)",INPUT:"var(--in)",OUTPUT:"var(--out)",FORWARD:"var(--fwd)",match:"var(--match)",ACCEPT:"var(--accept)",DROP:"var(--drop)",val:"var(--ink)"};
+  const ACT={"-A":"append a rule to the end of the chain","-D":"delete a rule","-L":"list all rules","-F":"flush (delete) all rules","--policy":"set the chain's default action","--line-numbers":"show each rule's number","-I":"insert a rule (top of chain by default)","-P":"set the chain's default action","-n":"show numbers, not names","-v":"verbose"};
+  function anatomy(cmd){
+    const t=cmd.split(" "),out=[];
+    for(let i=0;i<t.length;i++){
+      const w=t[i];
+      if(w==="iptables")out.push([w,"the firewall utility","util"]);
+      else if(w==="iptables-save")out.push([w,"print all rules","act"]);
+      else if(w==="iptables-restore")out.push([w,"load rules","act"]);
+      else if(w===">")out.push([w,"write output into a file","util"]);
+      else if(w==="<")out.push([w,"read input from a file","util"]);
+      else if(/\.(bak|rules|txt|v4)$/.test(w))out.push([w,"backup file","val"]);
+      else if(ACT[w])out.push([w,ACT[w],"act"]);
+      else if(COL[w]&&CH.includes(w))out.push([w,"chain","\u0000"+w]);
+      else if(w==="-p"){out.push([w+" "+t[++i],"protocol","match"]);}
+      else if(w==="--dport"){const p=t[++i];out.push([w+" "+p,`destination port (${SVC[p]||p})`,"match"]);}
+      else if(w==="-j"){const g=t[++i];out.push([w+" "+g,g==="ACCEPT"?"jump to target: allow":"jump to target: block","\u0000"+g]);}
+      else if(w==="ACCEPT"||w==="DROP")out.push([w,w==="ACCEPT"?"allow by default":"block by default","\u0000"+w]);
+      else if(/^\d+$/.test(w))out.push([w,"rule number","val"]);
+      else out.push([w,"","val"]);
+    }
+    return out.map(([c,l,k],i)=>{const col=k[0]==="\u0000"?COL[k.slice(1)]:COL[k];
+      return `<div class="tok" style="--tc:${col};animation-delay:${reduce?0:i*90}ms"><code>${esc(c)}</code><small>${esc(l)}</small></div>`;}).join("");
+  }
+  function explain(){
+    const e=$("explain");
+    if(idx===0){e.innerHTML=`<div class="slide">Start</div><h3>A fresh Ubuntu host</h3><p>Press <strong>Next step</strong> to run the first command from the slides. You can also click any command in the list above to jump to it.</p><div class="ex"><b>How to read each step</b>The coloured blocks break the command into parts. The terminal shows the real output. The traffic test and chain tables show the effect.</div>`;return;}
+    const s=S[idx-1];
+    e.innerHTML=`<div class="slide">${esc(s.slide)} · step ${idx}</div><h3>${esc(s.title)}</h3><div class="anat">${anatomy(s.cmd)}</div><p>${esc(s.what)}</p><div class="ex${s.warn?" warn":""}"><b>${s.warn?"Watch out":"Example"}</b>${esc(s.ex)}</div>`;
+  }
+
+  // ---------- chains ----------
+  function renderChains(fx){
+    fx=fx||{};
+    $("chains").innerHTML=CH.map(c=>{
+      const rows=st.rules[c].map((r,i)=>`<tr data-c="${c}" data-i="${i}" class="${fx.enter&&fx.enter[0]===c&&fx.enter[1]===i||fx.all?"enter":""}"><td>${i+1}</td><td class="t-${r.target}">${r.target}</td><td>${esc(matchStr(r)||"all traffic")}</td></tr>`).join("");
+      return `<div class="chain" data-chain="${c}"><div class="chead"><h3>${c}</h3><span class="pol ${st.pol[c]}${fx.pulse===c?" pulse":""}">policy ${st.pol[c]}</span></div>
+        <table><thead><tr><th>#</th><th>target</th><th>match</th></tr></thead><tbody>${rows||'<tr class="empty"><td colspan="3">no rules</td></tr>'}
+        <tr class="polrow" data-c="${c}" data-i="pol"><td colspan="3">no match → policy ${st.pol[c]}</td></tr></tbody></table></div>`;}).join("");
+    $("scr1").textContent="IN  "+st.pol.INPUT;$("scr2").textContent="OUT "+st.pol.OUTPUT;$("scr3").textContent="FWD "+st.pol.FORWARD;
+  }
+  function renderFile(pulse){
+    if(!st.file){$("fname").textContent="rules.bak · not saved yet";$("ftext").textContent="Run iptables-save > rules.bak to create it.";}
+    else{$("fname").textContent=st.file.name;$("ftext").textContent=st.file.text;}
+    if(pulse){const f=$("file");f.classList.remove("pulse");void f.offsetWidth;f.classList.add("pulse");}
+  }
+
+  // ---------- traffic ----------
+  const LANES=[
+    {id:"i22",chain:"INPUT",port:22,label:"SSH tcp/22",cls:"in",y:58,ey:118},
+    {id:"i21",chain:"INPUT",port:21,label:"FTP tcp/21",cls:"in",y:108,ey:138},
+    {id:"i80",chain:"INPUT",port:80,label:"HTTP tcp/80",cls:"in",y:158,ey:158},
+    {id:"i443",chain:"INPUT",port:443,label:"HTTPS tcp/443",cls:"in",y:208,ey:178},
+    {id:"o80",chain:"OUTPUT",port:80,label:"HTTP tcp/80",cls:"out",y:98,ey:135},
+    {id:"o443",chain:"OUTPUT",port:443,label:"HTTPS tcp/443",cls:"out",y:178,ey:165},
+    {id:"f80",chain:"FORWARD",port:80,label:"ROUTED THROUGH · FORWARD CHAIN",cls:"fwd",y:300}
+  ];
+  const lg=$("lanes");
+  LANES.forEach(L=>{
+    let d,lx,la,bx,ba;
+    if(L.cls==="in"){d=`M880 ${L.y} C 720 ${L.y}, 650 ${L.ey}, 548 ${L.ey}`;lx=875;la="end";}
+    else if(L.cls==="out"){d=`M352 ${L.ey} C 260 ${L.ey}, 190 ${L.y}, 20 ${L.y}`;lx=25;la="start";}
+    else{d=`M20 ${L.y} L 880 ${L.y}`;lx=25;la="start";}
+    const p=document.createElementNS(NS,"path");p.setAttribute("d",d);p.setAttribute("class","lane "+L.cls);lg.appendChild(p);
+    const t=document.createElementNS(NS,"text");t.setAttribute("x",lx);t.setAttribute("y",L.y-8);t.setAttribute("text-anchor",la);
+    t.setAttribute("class",L.cls==="fwd"?"s-head h-fwd":"s-lab");t.textContent=L.label;lg.appendChild(t);
+    const b=document.createElementNS(NS,"text");
+    if(L.cls==="fwd"){b.setAttribute("x",875);b.setAttribute("y",L.y-8);b.setAttribute("text-anchor","end");}
+    else{b.setAttribute("x",lx);b.setAttribute("y",L.y+19);b.setAttribute("text-anchor",la);}
+    b.setAttribute("class","badge");lg.appendChild(b);
+    L.path=p;L.len=p.getTotalLength();L.badge=b;
+  });
+  function evaluate(L){
+    const rs=st.rules[L.chain],i=rs.findIndex(r=>matches(r,L.port));
+    return i>=0?{target:rs[i].target,why:"rule "+(i+1),i}:{target:st.pol[L.chain],why:"policy",i:"pol"};
+  }
+  function setBadge(L,r){L.badge.textContent=(r.target==="ACCEPT"?"✓ ACCEPT · ":"✕ DROP · ")+r.why;L.badge.setAttribute("class","badge "+(r.target==="ACCEPT"?"ok":"no"));}
+  function allBadges(){LANES.forEach(L=>setBadge(L,evaluate(L)));}
+  function hit(c,i){const row=document.querySelector(`#chains tr[data-c="${c}"][data-i="${i}"]`);if(row){row.classList.add("hit");setTimeout(()=>row.classList.remove("hit"),900);}}
+  let packets=[];
+  const crossed=(L,x)=>L.cls==="in"?x<=553:L.cls==="out"?x<=347:x>=450;
+  function sendTest(){
+    LANES.forEach((L,k)=>setTimeout(()=>{
+      const c=document.createElementNS(NS,"circle");c.setAttribute("r",7);c.setAttribute("class","pkt "+L.cls);$("pk").appendChild(c);
+      packets.push({L,c,t:0,state:"go",life:-1});
+    },k*160));
+  }
+  function clearPackets(){packets.forEach(p=>{p.c.remove();p.x&&p.x.remove()});packets=[];}
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min((now-last)/1000,.05);last=now;
+    for(const p of packets.slice()){
+      if(p.life>=0){p.life+=dt;const k=Math.min(p.life/.7,1);p.c.setAttribute("r",7+7*k);p.c.style.opacity=1-k;p.x.style.opacity=1-k;
+        if(k>=1){p.c.remove();p.x.remove();packets.splice(packets.indexOf(p),1);}continue;}
+      p.t+=300*dt/p.L.len;
+      if(p.t>=1){p.c.remove();packets.splice(packets.indexOf(p),1);continue;}
+      const pt=p.L.path.getPointAtLength(p.t*p.L.len);p.c.setAttribute("cx",pt.x);p.c.setAttribute("cy",pt.y);
+      if(p.state==="go"&&crossed(p.L,pt.x)){
+        const r=evaluate(p.L);setBadge(p.L,r);hit(p.L.chain,r.i);
+        if(r.target==="ACCEPT"){p.state="ok";p.c.classList.add("ok");}
+        else{p.c.classList.add("drop");p.life=0;const g=document.createElementNS(NS,"g");g.setAttribute("class","xmark");
+          g.innerHTML=`<line x1="${pt.x-7}" y1="${pt.y-7}" x2="${pt.x+7}" y2="${pt.y+7}"/><line x1="${pt.x+7}" y1="${pt.y-7}" x2="${pt.x-7}" y2="${pt.y+7}"/>`;
+          $("pk").appendChild(g);p.x=g;}
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- terminal ----------
+  const T=$("term"),PR='<span class="pr">root@ubuntu:~#</span> ';
+  function tline(html){const d=document.createElement("div");d.innerHTML=html;T.appendChild(d);T.scrollTop=T.scrollHeight;return d;}
+  function resetTerm(){T.innerHTML="";tline('<span class="dim">cis@ubuntu:~$ sudo -i</span>');tline(PR+'<span class="cursor"></span>');}
+  function liveLine(){const d=T.lastElementChild;d.innerHTML=PR;return d;}
+
+  // ---------- runner ----------
+  let idx=0,gen=0,busy=false,playing=false;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  async function run(i,instant){
+    const s=S[i],g=gen,alive=()=>g===gen,fast=instant||reduce;
+    const d=liveLine();
+    if(fast)d.innerHTML=PR+esc(s.cmd);
+    else{for(let k=1;k<=s.cmd.length;k++){if(!alive())return;d.innerHTML=PR+esc(s.cmd.slice(0,k))+'<span class="cursor"></span>';T.scrollTop=1e9;await sleep(26);}
+      d.innerHTML=PR+esc(s.cmd);await sleep(220);}
+    let out=[],fx={},file=false;
+    if(s.k==="list")out=listOut(s.nums);
+    else if(s.k==="add"){st.rules[s.c].push(clone(s.r));fx.enter=[s.c,st.rules[s.c].length-1];}
+    else if(s.k==="pol"){st.pol[s.c]=s.p;fx.pulse=s.c;}
+    else if(s.k==="del"){
+      if(!fast){const row=document.querySelector(`#chains tr[data-c="${s.c}"][data-i="${s.n-1}"]`);row&&row.classList.add("leaving");await sleep(700);if(!alive())return;}
+      st.rules[s.c].splice(s.n-1,1);
+    }
+    else if(s.k==="flush"){
+      if(!fast){document.querySelectorAll("#chains tbody tr:not(.polrow):not(.empty)").forEach(r=>r.classList.add("leaving"));await sleep(700);if(!alive())return;}
+      CH.forEach(c=>st.rules[c]=[]);
+    }
+    else if(s.k==="save"){st.file={name:"rules.bak",snap:clone({pol:st.pol,rules:st.rules}),text:saveText(st)};file=true;}
+    else if(s.k==="restore"){const f=clone(st.file.snap);st.pol=f.pol;st.rules=f.rules;fx.all=true;}
+    if(!instant){renderChains(fx);renderFile(file);}
+    for(const o of out){tline(esc(o));if(!fast)await sleep(28);}
+    if(!alive())return;
+    tline(PR+'<span class="cursor"></span>');
+    if(!instant){allBadges();if(s.k!=="list"&&s.k!=="save"&&!reduce&&!looping)sendTest();}
+  }
+  function ui(){
+    $("stepno").textContent=`Step ${idx} of ${S.length}`;
+    $("next").disabled=busy||idx>=S.length;$("back").disabled=idx===0;
+    $("play").textContent=playing?"❚❚ Stop":"Play all";
+    document.querySelectorAll("#rail button").forEach((b,i)=>{b.classList.toggle("done",i<idx-1);b.classList.toggle("cur",i===idx-1);b.setAttribute("aria-current",i===idx-1?"step":"false");});
+    explain();
+  }
+  function jump(n){
+    gen++;busy=false;playing=false;clearPackets();
+    st=fresh();resetTerm();
+    for(let i=0;i<n;i++)run(i,true);
+    idx=n;renderChains();renderFile(false);allBadges();ui();
+  }
+  async function next(){
+    if(busy||idx>=S.length)return;busy=true;idx++;ui();
+    const g=gen;await run(idx-1,false);if(g!==gen)return;busy=false;ui();
+  }
+  async function playAll(){
+    if(playing){playing=false;ui();return;}
+    if(idx>=S.length)jump(0);
+    playing=true;ui();const g=gen;
+    while(playing&&idx<S.length&&g===gen){await next();if(!playing||g!==gen)break;await sleep(reduce?800:2200);}
+    if(g===gen){playing=false;ui();}
+  }
+
+  // rail
+  const groups=[];S.forEach((s,i)=>{let g=groups.find(x=>x.n===s.grp);if(!g)groups.push(g={n:s.grp,items:[]});g.items.push(i);});
+  $("rail").innerHTML=groups.map(g=>`<div class="group"><span class="gl">${esc(g.n)}</span>${g.items.map(i=>{const c=S[i].cmd.replace(/^iptables /,"");
+    return `<button type="button" data-i="${i}" title="${esc(S[i].cmd)}">${i+1} · ${esc(c.length>30?c.slice(0,28)+"…":c)}</button>`;}).join("")}</div>`).join("");
+  $("rail").addEventListener("click",e=>{const b=e.target.closest("button");if(b)jump(+b.dataset.i+1);});
+
+  // cheat sheet (deck commands)
+  const CHEAT=[
+    ["Slide 6","iptables -A INPUT -p tcp --dport 22 -j ACCEPT","Allow incoming SSH (INPUT chain)",2],
+    ["Slide 6","iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT","Allow outgoing HTTP (OUTPUT chain)",3],
+    ["Slide 7 · 8","iptables -L","List all current rules",1],
+    ["Slide 8","iptables -D INPUT 3","Delete the third rule in the INPUT chain",7],
+    ["Slide 9","iptables-save > rules.bak","Save all rules to a file",8],
+    ["Slide 9","iptables-restore < rules.bak","Restore rules from a file",10],
+    ["Slide 10","iptables -F","Clear all current rules",9],
+    ["Slide 11","iptables --policy INPUT DROP\niptables --policy OUTPUT DROP\niptables --policy FORWARD DROP","Block all incoming, outgoing and forwarded traffic",12],
+    ["Slide 12","iptables --policy OUTPUT ACCEPT","Allow all outgoing traffic",15],
+    ["Slide 13","iptables -A INPUT -p tcp --dport 80 -j ACCEPT","Allow incoming web traffic",16],
+    ["Slide 14","iptables -A INPUT -p tcp --dport 22 -j ACCEPT","Allow incoming SSH traffic",17]
+  ];
+  $("cheat").innerHTML=CHEAT.map(([sl,c,d,n])=>`<button type="button" class="cc" data-n="${n}"><span class="sl">${sl} · step ${n}</span><code>${esc(c).replace(/\n/g,"<br>")}</code><span>${esc(d)}</span></button>`).join("");
+  $("cheat").addEventListener("click",e=>{const b=e.target.closest(".cc");if(b){jump(+b.dataset.n);window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});}});
+
+  // ---------- your own command ----------
+  const HELP=["Commands this lab understands:",
+    "  iptables -A|-I CHAIN [-p tcp|udp|all] [--dport PORT] -j ACCEPT|DROP|REJECT",
+    "  iptables -I CHAIN NUM ...        insert at position NUM",
+    "  iptables -D CHAIN NUM            or  -D CHAIN <same rule spec>",
+    "  iptables -L [CHAIN] [-n] [--line-numbers]",
+    "  iptables -F [CHAIN]",
+    "  iptables -P|--policy CHAIN ACCEPT|DROP",
+    "  iptables-save [> FILE]     iptables-restore < FILE",
+    "  clear",
+    "CHAIN is INPUT, OUTPUT or FORWARD (uppercase). PORT can be a number or a name like ssh."];
+  const ERR={chain:"iptables: No chain/target/match by that name."};
+  function parse(line){
+    let s=line.trim().replace(/\s*([<>])\s*/g," $1 ").replace(/\s+/g," ").replace(/^sudo /,"");
+    if(s==="clear"||s==="help")return {k:s};
+    let m;
+    if(m=s.match(/^iptables-save(?: > (\S+))?$/))return {k:"save",file:m[1]};
+    if(m=s.match(/^iptables-restore < (\S+)$/))return {k:"restore",file:m[1]};
+    if(/^iptables-(save|restore)/.test(s))return {err:"Usage: iptables-save > FILE  or  iptables-restore < FILE"};
+    if(!/^iptables( |$)/.test(s))return {err:`${s.split(" ")[0]}: command not found in this lab. Type help.`};
+    const t=s.split(" ").slice(1);const o={};
+    const OPS={"-A":"add","--append":"add","-I":"ins","--insert":"ins","-D":"del","--delete":"del","-L":"list","--list":"list","-F":"flush","--flush":"flush","-P":"pol","--policy":"pol"};
+    const chainArg=(req)=>{const c=t[i+1];if(!c||c.startsWith("-")){if(req)throw "iptables v1.8.10: option requires an argument";return null;}i++;
+      if(!CH.includes(c))throw ERR.chain;return c;};
+    let i=0;
+    try{
+      for(i=0;i<t.length;i++){
+        const w=t[i];
+        if(OPS[w]){if(o.k)throw "iptables v1.8.10: Cannot use more than one command option at a time.";o.k=OPS[w];
+          o.c=chainArg(["add","ins","del","pol"].includes(o.k));
+          if((o.k==="ins"||o.k==="del")&&/^\d+$/.test(t[i+1]||""))o.n=+t[++i];
+          if(o.k==="pol"){const p=t[++i];if(!p)throw "iptables v1.8.10: -P requires a chain and a policy";o.p=p;}
+        }
+        else if(w==="-p"||w==="--protocol"){const p=(t[++i]||"").toLowerCase();if(!["tcp","udp","all","icmp"].includes(p))throw `iptables v1.8.10: unknown protocol "${t[i]||""}" specified`;o.proto=p;}
+        else if(w==="--dport"||w==="--destination-port"){const v=t[++i]||"";const port=/^\d+$/.test(v)?+v:PORTBYNAME[v];
+          if(!port||port>65535)throw `iptables v1.8.10: invalid port/service \`${v}' specified`;o.dport=port;}
+        else if(w==="-j"||w==="--jump"){const g=t[++i]||"";if(!["ACCEPT","DROP","REJECT"].includes(g))throw `iptables v1.8.10: Couldn't load target \`${g}':No such file or directory`;o.target=g;}
+        else if(w==="-m"){i++;}
+        else if(w==="-n"||w==="--numeric")o.numeric=true;
+        else if(w==="--line-numbers")o.nums=true;
+        else if(w==="-v"||w==="--verbose"){}
+        else throw `iptables v1.8.10: unknown option "${w}" (not covered in this lab, type help)`;
+      }
+      if(!o.k)throw "iptables v1.8.10: no command specified";
+      if(o.dport!=null&&!(o.proto==="tcp"||o.proto==="udp"))throw 'iptables v1.8.10: unknown option "--dport" (add -p tcp first)';
+      if(["add","ins"].includes(o.k)&&!o.target)throw "Add a target so the rule does something: -j ACCEPT or -j DROP";
+      if(o.k==="pol"&&!["ACCEPT","DROP"].includes(o.p))throw "iptables: Bad policy name. Run `dmesg' for more information.";
+    }catch(e){return {err:String(e)};}
+    return o;
+  }
+  async function custom(line){
+    const d=liveLine();d.innerHTML=PR+esc(line);
+    const o=parse(line);let out=[],fx={},file=false,changed=false;
+    if(o.err)out=[[o.err,"err"]];
+    else if(o.k==="clear"){T.innerHTML="";tline(PR+'<span class="cursor"></span>');return;}
+    else if(o.k==="help")out=HELP;
+    else if(o.k==="list")out=listOut(o.nums,o.numeric,o.c);
+    else if(o.k==="add"||o.k==="ins"){
+      const r={proto:o.proto||"all",dport:o.dport??null,target:o.target},rs=st.rules[o.c];
+      if(o.k==="add"){rs.push(r);fx.enter=[o.c,rs.length-1];}
+      else{const n=o.n||1;if(n>rs.length+1)out=[["iptables: Index of insertion too big.","err"]];else{rs.splice(n-1,0,r);fx.enter=[o.c,n-1];}}
+      changed=!out.length;
+    }
+    else if(o.k==="del"){
+      const rs=st.rules[o.c];let k=-1;
+      if(o.n!=null){if(o.n<1||o.n>rs.length)out=[["iptables: Index of deletion too big.","err"]];else k=o.n-1;}
+      else{k=rs.findIndex(r=>r.target===o.target&&(r.proto||"all")===(o.proto||"all")&&(r.dport??null)===(o.dport??null));
+        if(k<0)out=[["iptables: Bad rule (does a matching rule exist in that chain?).","err"]];}
+      if(k>=0){if(!reduce){const row=document.querySelector(`#chains tr[data-c="${o.c}"][data-i="${k}"]`);row&&row.classList.add("leaving");await sleep(600);}
+        rs.splice(k,1);changed=true;}
+    }
+    else if(o.k==="flush"){(o.c?[o.c]:CH).forEach(c=>st.rules[c]=[]);changed=true;}
+    else if(o.k==="pol"){st.pol[o.c]=o.p;fx.pulse=o.c;changed=true;}
+    else if(o.k==="save"){
+      if(!o.file)out=saveText(st).split("\n");
+      else{st.file={name:o.file,snap:clone({pol:st.pol,rules:st.rules}),text:saveText(st)};file=true;}
+    }
+    else if(o.k==="restore"){
+      if(!st.file||st.file.name!==o.file)out=[[`-bash: ${o.file}: No such file or directory`,"err"]];
+      else{const f=clone(st.file.snap);st.pol=f.pol;st.rules=f.rules;fx.all=true;changed=true;}
+    }
+    renderChains(fx);renderFile(file);
+    for(const x of out){const [txt,c]=Array.isArray(x)?x:[x,""];tline(c?`<span class="${c}">${esc(txt)}</span>`:esc(txt));}
+    tline(PR+'<span class="cursor"></span>');
+    allBadges();
+    if(changed&&!looping&&!reduce)sendTest();
+    const e=$("explain");
+    const res=o.err?"The command was rejected, so nothing changed. Check the error in the terminal.":
+      o.k==="list"||o.k==="help"?"Read-only: nothing changed.":
+      changed||file?"Applied. The chain tables and traffic test show the effect.":"Nothing changed.";
+    e.innerHTML=`<div class="slide">Your command</div><h3>${esc(line)}</h3>${o.err||o.k==="help"||o.k==="clear"?"":`<div class="anat">${anatomy(line.trim().replace(/^sudo /,"").replace(/\s+/g," "))}</div>`}<div class="ex${o.err?" warn":""}"><b>${o.err?"Error":"Result"}</b>${esc(res)}</div>`;
+  }
+  const hist=[];let hpos=0;
+  $("cmdform").addEventListener("submit",async e=>{
+    e.preventDefault();const inp=$("cmd"),v=inp.value.trim();if(!v||busy)return;
+    hist.push(v);hpos=hist.length;inp.value="";await custom(v);
+  });
+  $("cmd").addEventListener("keydown",e=>{
+    if(e.key==="ArrowUp"&&hpos>0){hpos--;e.target.value=hist[hpos];e.preventDefault();}
+    else if(e.key==="ArrowDown"){hpos=Math.min(hist.length,hpos+1);e.target.value=hist[hpos]||"";e.preventDefault();}
+  });
+  const SAMPLES=["iptables -A INPUT -p tcp --dport 443 -j ACCEPT","iptables -I INPUT 1 -p tcp --dport 22 -j DROP","iptables -A INPUT -p tcp --dport 21 -j REJECT","iptables -L -n --line-numbers","iptables -D INPUT 1","iptables -A input -p tcp --dport 22 -j ACCEPT"];
+  $("samples").innerHTML=SAMPLES.map(c=>`<button type="button" title="Put this in the box">${esc(c.replace(/^iptables /,""))}</button>`).join("");
+  $("samples").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=[...$("samples").children].indexOf(b);$("cmd").value=SAMPLES[i];$("cmd").focus();});
+
+  $("next").addEventListener("click",next);
+  $("back").addEventListener("click",()=>jump(Math.max(0,idx-1)));
+  $("restart").addEventListener("click",()=>jump(0));
+  $("play").addEventListener("click",playAll);
+  let looping=false,loopTimer=null;
+  function setLoop(on){
+    looping=on;clearInterval(loopTimer);
+    const b=$("test");b.textContent=on?"■ Stop traffic":"Send test traffic";b.setAttribute("aria-pressed",String(on));
+    b.classList.toggle("primary",on);
+    if(on){sendTest();loopTimer=setInterval(sendTest,1700);}
+  }
+  $("test").addEventListener("click",()=>setLoop(!looping));
+  jump(0);
+})();
+</script>
+
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body></html>

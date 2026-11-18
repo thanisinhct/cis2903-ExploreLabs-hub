@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 2 – Linux Commands to Remember</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f4f8; --ink:#1f2633; --sub:#5b6474; --line:#e2e5ec; --card:#fff;
+  --pink:#f6a9ab; --pink-d:#d9576a; --peach:#fdd0ad; --peach-d:#d9823f; --lav:#dfe3fb; --lav-d:#6a5be2; --sky:#d8ecff; --sky-d:#2f7fd1;
+  --t-bg:#0e1420; --t-bar:#1a2232; --t-fg:#d6deeb; --t-green:#7fd962; --t-blue:#5cb3ff; --t-red:#ff6b6b; --t-yellow:#ffd166; --t-muted:#7c8796; --t-purple:#c792ea;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 28px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+header h1{margin:0;font-size:24px;font-weight:800;letter-spacing:.5px;color:#4a5160;text-transform:uppercase}
+header h1 span{color:var(--lav-d)}
+header .course{font-size:13px;color:var(--sub);padding:4px 10px;border:1px solid var(--line);border-radius:999px}
+header .spacer{flex:1}
+.btn{font:600 13px Inter,sans-serif;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn:hover{border-color:#b9bfcc;transform:translateY(-1px)}
+.btn.primary{background:var(--lav-d);border-color:var(--lav-d);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{font:600 12px Inter;border:0;background:#fff;padding:8px 11px;cursor:pointer;color:var(--sub)}
+.seg button.on{background:var(--ink);color:#fff}
+
+.layout{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:22px;padding:22px 28px;max-width:1600px;margin:0 auto}
+/* ---------- left ---------- */
+.left{position:sticky;top:86px;align-self:start;max-height:calc(100vh - 106px);overflow:auto;padding-right:6px}
+.left::-webkit-scrollbar{width:6px}.left::-webkit-scrollbar-thumb{background:#cdd2dc;border-radius:6px}
+.search{width:100%;font:500 14px Inter;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:14px;background:#fff}
+.group{margin-bottom:18px}
+.group h3{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--sub);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.group h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.cmd{position:relative;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:11px 12px 11px 14px;margin-bottom:8px;cursor:pointer;transition:transform .15s, box-shadow .2s;overflow:hidden;animation:cardIn .4s both}
+.cmd:hover{transform:translateX(3px);box-shadow:0 4px 14px rgba(20,30,60,.08)}
+.cmd.active{box-shadow:0 0 0 2px var(--cd), 0 8px 22px rgba(20,30,60,.12);transform:translateX(4px)}
+.cmd.active::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--cd);transform-origin:left;animation:bar 1.4s linear infinite}
+@keyframes bar{0%{transform:scaleX(0)}100%{transform:scaleX(1);opacity:.2}}
+@keyframes cardIn{from{opacity:0;transform:translateX(-12px)}}
+.cmd .top{display:flex;align-items:baseline;gap:10px}
+.cmd .name{font:700 17px var(--mono);color:var(--cd);min-width:62px}
+.cmd .desc{font-size:13.5px;color:var(--ink)}
+.cmd .desc u{text-decoration-thickness:2px;text-decoration-color:var(--cd);text-underline-offset:2px;font-weight:700}
+.cmd .row2{display:flex;align-items:center;gap:8px;margin-top:7px}
+.cmd code{font:500 12.5px var(--mono);background:#f2f3f7;padding:3px 7px;border-radius:6px;color:#2b3242;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmd .purpose{font-size:12px;color:var(--sub);margin-top:5px}
+.cmd .acts{display:flex;gap:5px}
+.icon-btn{border:1px solid var(--line);background:#fff;border-radius:7px;font:600 11.5px Inter;padding:4px 8px;cursor:pointer;color:var(--sub)}
+.icon-btn:hover{color:var(--cd);border-color:var(--cd)}
+.keys{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.keys h3{margin:0 0 8px;font-size:14px}
+.keys ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6}
+.keys b{color:var(--lav-d)}
+.keys kbd{font:600 11px var(--mono);border:1px solid #c9cedb;border-bottom-width:2px;border-radius:5px;padding:1px 5px;background:#f7f8fb}
+.fstree{background:#22b14c;border-radius:12px;padding:14px 12px;color:#fff;margin-bottom:14px}
+.fstree h3{margin:0 0 4px;font-size:14px}
+.fstree p{margin:0 0 10px;font-size:12px;opacity:.9}
+.fs-root{text-align:center;margin-bottom:8px}
+.fs-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.chip{font:600 12px var(--mono);background:#ffd75e;color:#4b3b00;border:0;border-radius:6px;padding:4px 7px;cursor:pointer;transition:.15s;position:relative}
+.chip:hover{transform:translateY(-2px);background:#ffe58f}
+.chip small{display:block;font:500 9.5px Inter;color:#6a5600}
+.sub{display:inline-flex;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:4px;border-radius:8px}
+.sub .fs-row{gap:3px}
+.sub .chip{font-size:11px;padding:3px 5px;background:#ffe9a6}
+
+/* ---------- right ---------- */
+.right{display:flex;flex-direction:column;gap:22px;min-width:0}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(20,30,60,.04)}
+.panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.panel-head h2{margin:0;font-size:17px}
+.panel-head .tag{font:700 11px Inter;letter-spacing:1px;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:var(--lav);color:var(--lav-d)}
+.panel-head .tag.green{background:#dff6e4;color:#1d8a3b}
+.panel-head .spacer{flex:1}
+.info{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center;background:linear-gradient(120deg,#f6f7fb,#eef0fb);border-radius:12px;padding:12px 16px;margin-bottom:12px;min-height:74px}
+.info .big{grid-row:span 2;font:700 30px var(--mono);color:var(--lav-d);min-width:110px;animation:pop .35s both}
+.info .d1{font-weight:600;font-size:15px;animation:fadeUp .35s .05s both}
+.info .d2{font-size:13px;color:var(--sub);animation:fadeUp .35s .1s both}
+.info .d2 code{font:600 12.5px var(--mono);background:#fff;border:1px solid var(--line);padding:2px 6px;border-radius:6px;color:var(--ink)}
+@keyframes pop{from{opacity:0;transform:scale(.7)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}}
+.caption{display:flex;gap:10px;align-items:center;font-size:13.5px;margin-top:10px;min-height:38px;padding:8px 12px;border-radius:10px;background:#fff8e6;border:1px solid #f6e3b0;color:#5a4710}
+.caption .stepn{font:700 11px Inter;background:#f4b740;color:#fff;border-radius:999px;padding:3px 8px;white-space:nowrap}
+.caption .txt{animation:fadeUp .3s both}
+.dots{display:flex;gap:5px;margin-left:auto}
+.dots i{width:8px;height:8px;border-radius:50%;background:#e5d6a8;transition:.25s}
+.dots i.on{background:#f4b740;transform:scale(1.25)}
+.dots i.done{background:#c9a548}
+
+.term{background:var(--t-bg);border-radius:12px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(10,15,30,.25)}
+.term-bar{display:flex;align-items:center;gap:7px;background:var(--t-bar);padding:9px 12px;color:#9aa6ba;font:500 12px var(--mono)}
+.term-bar .d{width:11px;height:11px;border-radius:50%}
+.term-bar .t{margin-left:8px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.term-bar .tb{background:transparent;border:1px solid #33405a;color:#b9c4d6;border-radius:6px;font:600 11px Inter;padding:4px 9px;cursor:pointer}
+.term-bar .tb:hover{border-color:#6b7ea3;color:#fff}
+.term-body{font:14px/1.55 var(--mono);color:var(--t-fg);padding:12px 14px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+#demoBody{height:340px}
+#pBody{height:400px;cursor:text}
+.term-body::-webkit-scrollbar{width:8px}.term-body::-webkit-scrollbar-thumb{background:#2c3850;border-radius:6px}
+.ln{min-height:1.55em;animation:lin .22s both}
+@keyframes lin{from{opacity:0;transform:translateY(3px)}}
+.u{color:var(--t-green);font-weight:700}.u.root{color:var(--t-red)}
+.pth{color:var(--t-blue);font-weight:700}
+.dir{color:var(--t-blue);font-weight:700}
+.err{color:var(--t-red)}
+.muted{color:var(--t-muted)}
+.yellow{color:var(--t-yellow)}
+.green{color:var(--t-green)}
+.purple{color:var(--t-purple)}
+.bold{font-weight:700;color:#fff}
+.hl{color:#1a1200;background:var(--t-yellow);border-radius:2px}
+.inv{background:var(--t-fg);color:var(--t-bg);padding:0 4px}
+.cursor{display:inline-block;width:.6em;height:1.15em;background:var(--t-fg);vertical-align:text-bottom;animation:blink 1s steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+.hint{color:var(--t-yellow);font-style:italic;opacity:.85}
+.typed{color:#fff}
+/* demo nano */
+.mini-nano{border:1px solid #3a4660;border-radius:6px;margin:6px 0;overflow:hidden;animation:lin .3s both}
+.mini-nano .nh{background:var(--t-fg);color:var(--t-bg);display:flex;justify-content:space-between;padding:0 8px;font-weight:700}
+.mini-nano .nb{padding:6px 8px;min-height:84px;color:#fff}
+.mini-nano .ns{text-align:center;min-height:1.55em}
+.mini-nano .ns span{background:var(--t-fg);color:var(--t-bg);padding:0 6px}
+.mini-nano .nf{display:flex;gap:18px;padding:2px 8px 4px;color:var(--t-fg);font-size:12.5px}
+.mini-nano .nf b{background:var(--t-fg);color:var(--t-bg);padding:0 3px;margin-right:4px}
+/* power-off overlay */
+.power{position:absolute;inset:38px 0 0 0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#8fa0bb;font:500 14px var(--mono);opacity:0;pointer-events:none;transition:opacity 1.2s}
+.power.on{opacity:1;pointer-events:auto}
+.power .led{width:12px;height:12px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 12px #ff4d4d;animation:blink 1.4s steps(1) infinite}
+.power .btn{background:#1a2232;color:#fff;border-color:#33405a}
+/* practice */
+.practice-grid{display:grid;grid-template-columns:1fr 290px;gap:16px}
+.inrow{display:flex;align-items:flex-start}
+.inrow input{flex:1;background:transparent;border:0;outline:0;color:#fff;font:14px/1.55 var(--mono);padding:0;margin:0;caret-color:var(--t-green);min-width:40px}
+.inrow input.secret{color:transparent}
+.nano{position:absolute;inset:38px 0 0 0;background:var(--t-bg);display:flex;flex-direction:column;font:14px/1.5 var(--mono);color:var(--t-fg)}
+.nano[hidden]{display:none}
+.nano .nh{background:var(--t-fg);color:var(--t-bg);display:flex;justify-content:space-between;padding:1px 10px;font-weight:700}
+.nano textarea{flex:1;background:transparent;border:0;outline:0;resize:none;color:#fff;font:14px/1.5 var(--mono);padding:8px 10px;caret-color:var(--t-green)}
+.nano .ns{text-align:center;min-height:1.6em}
+.nano .ns span{background:var(--t-fg);color:var(--t-bg);padding:0 6px}
+.nano .ns button{font:700 12px var(--mono);margin:0 4px;background:var(--t-fg);color:var(--t-bg);border:0;padding:0 6px;cursor:pointer}
+.nano .nf{display:flex;flex-wrap:wrap;gap:6px 18px;padding:4px 10px 8px}
+.nano .nf button{background:transparent;border:0;color:var(--t-fg);font:13px var(--mono);cursor:pointer;padding:0}
+.nano .nf button b{background:var(--t-fg);color:var(--t-bg);padding:0 3px;margin-right:5px}
+.tasks{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fafbfd}
+.tasks h3{margin:0 0 4px;font-size:15px}
+.prog{height:8px;background:#e7e9f0;border-radius:99px;overflow:hidden;margin:8px 0 10px}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22b14c,#7fd962);transition:width .5s}
+.task{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:6px 0;border-bottom:1px dashed #e6e8ef;color:var(--ink)}
+.task:last-child{border:0}
+.task .box{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid #c3c8d4;display:grid;place-items:center;font-size:12px;color:#fff;transition:.25s;margin-top:1px}
+.task.done .box{background:#22b14c;border-color:#22b14c;transform:scale(1.1)}
+.task.done .tx{color:var(--sub);text-decoration:line-through}
+.task code{font:600 12px var(--mono);background:#eef0f6;padding:1px 5px;border-radius:5px}
+.task.just{animation:flash .9s}
+@keyframes flash{0%{background:#dff6e4}100%{background:transparent}}
+.celebrate{display:none;text-align:center;margin-top:10px;padding:10px;border-radius:10px;background:#dff6e4;color:#1d6b33;font-weight:700;animation:pop .4s both}
+.celebrate.on{display:block}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.disclaimer{max-width:1600px;margin:18px auto 0;padding:0 28px}
+.disclaimer div{display:flex;gap:12px;align-items:center;background:#fff4e5;border:1px solid #f5c27a;border-left:6px solid #e8890c;border-radius:12px;padding:12px 16px;font-size:14px;color:#5c3a05;line-height:1.45}
+.disclaimer .ic{font-size:22px}
+.disclaimer b{color:#a24f00}
+@media (max-width:900px){.disclaimer{padding:0 16px;margin-top:14px}}
+footer{text-align:center;color:var(--sub);font-size:12px;padding:6px 0 26px}
+@media (max-width:1100px){.practice-grid{grid-template-columns:1fr}}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;padding:16px}
+  .left{position:static;max-height:none}
+  header{position:static;padding:14px 16px}
+  #demoBody{height:300px}#pBody{height:340px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lab 2 &nbsp;<span>Commands to Remember</span></h1>
+  <div class="course">CIS 2903 · Operating Systems</div>
+  <div class="spacer"></div>
+  <div class="seg" id="speed" title="Animation speed">
+    <button data-s="slow">Slow</button><button data-s="normal" class="on">Normal</button><button data-s="fast">Fast</button>
+  </div>
+  <button class="btn primary" id="tourBtn">▶ Play all commands</button>
+</header>
+<div class="disclaimer" role="note"><div><span class="ic">⚠️</span><span><b>Disclaimer:</b> This page is a <b>simulated terminal for practice only</b>. It does not behave exactly like a real Linux system. <b>Your lab exam will be done on a real Linux Virtual Machine (VM)</b>, so make sure you also practise these commands there.</span></div></div>
+
+<div class="layout">
+  <!-- LEFT: commands -->
+  <aside class="left">
+    <input class="search" id="search" placeholder="🔍  Filter commands…  (e.g. copy, file, user)">
+    <div id="groups"></div>
+
+    <div class="keys">
+      <h3>🔑 Key Points</h3>
+      <ul>
+        <li><b>mv</b> can both <b>move</b> and <b>rename</b> a file.</li>
+        <li><code>su -</code>, <code>su - root</code> or <code>sudo -i</code> switch to the <b>root user</b>.</li>
+        <li><b>/</b> is the <b>root directory</b> — the top of the tree.</li>
+        <li>Press <kbd>Tab</kbd> to <b>auto-complete</b> commands and names. <kbd>↑</kbd> recalls previous commands.</li>
+      </ul>
+    </div>
+
+    <div class="fstree">
+      <h3>🌳 The Linux directory tree</h3>
+      <p>Click a folder to put <code style="color:#fff">cd</code> into the practice terminal.</p>
+      <div class="fs-root"><button class="chip" data-p="/">/<small>root</small></button></div>
+      <div class="fs-row" id="fsRow"></div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: terminals -->
+  <main class="right">
+    <section class="panel">
+      <div class="panel-head">
+        <span class="tag">Watch</span><h2>Execution terminal</h2>
+        <div class="spacer"></div>
+        <button class="btn sm" id="replayBtn">↻ Replay</button>
+        <button class="btn sm" id="stopBtn">■ Stop</button>
+        <button class="btn sm" id="tryThisBtn">⌨ Try this below</button>
+      </div>
+      <div class="info" id="info"></div>
+      <div class="term" id="demoTerm">
+        <div class="term-bar"><span class="d" style="background:#ff5f57"></span><span class="d" style="background:#febc2e"></span><span class="d" style="background:#28c840"></span><span class="t" id="demoTitle">student@hct-lab: ~ — demo</span></div>
+        <div class="term-body" id="demoBody"></div>
+        <div class="power" id="demoPower"><div class="led"></div><div>System halted — power off.</div><div class="muted" style="font-size:12px">(demo only — your practice terminal is safe)</div></div>
+      </div>
+      <div class="caption" id="caption"><span class="stepn">Tip</span><span class="txt">Click any command on the left to watch it run.</span><div class="dots" id="dots"></div></div>
+    </section>
+
+    <section class="panel" id="practicePanel">
+      <div class="panel-head">
+        <span class="tag green">Practice</span><h2>Your turn — type commands here</h2><span style="font-size:12px;color:#a24f00;background:#fff4e5;border:1px solid #f5c27a;padding:3px 9px;border-radius:999px">Practice only · Exam = real VM</span>
+        <div class="spacer"></div>
+        <button class="btn sm" id="pClear">Clear screen</button>
+        <button class="btn sm" id="pReset">↺ Reset files</button>
+      </div>
+      <div class="practice-grid">
+        <div class="term" id="pTerm">
+          <div class="term-bar"><span class="d" style="background:#ff5f57"></span><span class="d" style="background:#febc2e"></span><span class="d" style="background:#28c840"></span><span class="t" id="pTitle">student@hct-lab: ~</span></div>
+          <div class="term-body" id="pBody">
+            <div id="pOut"></div>
+            <div class="inrow"><span id="pPrompt"></span><input id="pIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type a Linux command"></div>
+          </div>
+          <div class="nano" id="nano" hidden>
+            <div class="nh"><span>GNU nano 7.2</span><span id="nanoName"></span><span id="nanoMod"></span></div>
+            <textarea id="nanoTa" spellcheck="false"></textarea>
+            <div class="ns" id="nanoStatus"></div>
+            <div class="nf">
+              <button id="nanoSave"><b>^O</b>Write Out</button>
+              <button id="nanoExit"><b>^X</b>Exit</button>
+              <span class="muted" style="font-size:12px">(Ctrl+O save · Ctrl+X exit)</span>
+            </div>
+          </div>
+          <div class="power" id="pPower"><div class="led"></div><div>System powered off.</div><button class="btn sm" id="powerOn">⏻ Power on</button></div>
+        </div>
+        <div class="tasks">
+          <h3>🎯 Lab 2 challenges</h3>
+          <div style="font-size:12px;color:var(--sub)">Ticks appear automatically when you do each task.</div>
+          <div class="prog"><i id="progBar"></i></div>
+          <div id="taskList"></div>
+          <div class="celebrate" id="celebrate">🎉 All challenges complete — well done!</div>
+        </div>
+      </div>
+    </section>
+    <footer>Simulated Linux environment for practice — nothing here touches a real system. Type <b>help</b> in the practice terminal to see every supported command.</footer>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== Simulated Linux engine (no DOM) ===== */
+const USERS = { student: { home: '/home/student' }, ali: { home: '/home/ali' }, root: { home: '/root' } };
+const HOST = 'hct-lab';
+const CMD_NAMES = ['cat','cd','clear','cp','date','echo','exit','find','grep','head','help','history','less','locate','ls','man','mkdir','more','mv','nano','pwd','rm','rmdir','shutdown','su','sudo','tail','touch','tree','whoami'];
+
+const PASSWD = `root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+syslog:x:104:110::/home/syslog:/usr/sbin/nologin
+student:x:1000:1000:Student,,,:/home/student:/bin/bash
+ali:x:1001:1001:Ali,,,:/home/ali:/bin/bash
+`;
+const OSREL = `PRETTY_NAME="Ubuntu 24.04 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+`;
+const SYSLOG = `Nov 18 09:00:01 hct-lab systemd[1]: Started Daily apt download activities.
+Nov 18 09:02:13 hct-lab kernel: e1000: eth0 NIC Link is Up 1000 Mbps
+Nov 18 09:05:42 hct-lab sshd[812]: Accepted password for student from 10.0.0.15
+Nov 18 09:10:07 hct-lab cron[901]: (root) CMD (run-parts /etc/cron.hourly)
+Nov 18 09:15:30 hct-lab app[1203]: error: could not connect to database
+Nov 18 09:15:31 hct-lab app[1203]: retrying in 5 seconds
+Nov 18 09:15:36 hct-lab app[1203]: connected to database
+Nov 18 09:20:11 hct-lab kernel: usb 1-1: new high-speed USB device
+Nov 18 09:25:44 hct-lab systemd[1]: Starting Cleanup of Temporary Directories...
+Nov 18 09:30:02 hct-lab app[1203]: error: disk usage above 90%
+Nov 18 09:31:15 hct-lab sshd[955]: Accepted password for ali from 10.0.0.22
+Nov 18 09:35:00 hct-lab systemd[1]: Finished Cleanup of Temporary Directories.
+`;
+
+const MAN = {
+  su: ['su - run a shell as another user', 'su [-] [USER]', ['-, -l   start a login shell (go to that user\'s home)', 'USER    defaults to root when omitted']],
+  cd: ['cd - change the working directory', 'cd [DIR]', ['cd        go to your home directory', 'cd ..     go up one level (parent)', 'cd -      go back to the previous directory', 'cd /      go to the root directory']],
+  pwd: ['pwd - print name of current/working directory', 'pwd', ['Prints the full (absolute) path of the directory you are in.']],
+  ls: ['ls - list directory contents', 'ls [OPTION]... [FILE]...', ['-l   use a long listing format', '-a   do not ignore entries starting with .', '-la  both of the above']],
+  touch: ['touch - change file timestamps / create empty files', 'touch FILE...', ['A FILE that does not exist is created empty.']],
+  mkdir: ['mkdir - make directories', 'mkdir [OPTION]... DIRECTORY...', ['-p   make parent directories as needed']],
+  nano: ['nano - Nano\'s ANOther editor', 'nano FILE', ['^O (Ctrl+O)  write out (save)', '^X (Ctrl+X)  exit']],
+  cat: ['cat - concatenate files and print on the standard output', 'cat [FILE]...', ['Prints the whole content of each FILE.']],
+  cp: ['cp - copy files and directories', 'cp [OPTION]... SOURCE DEST', ['-r   copy directories recursively']],
+  mv: ['mv - move (rename) files', 'mv SOURCE DEST', ['If DEST is a directory, SOURCE is moved into it;', 'otherwise SOURCE is renamed to DEST.']],
+  rm: ['rm - remove files or directories', 'rm [OPTION]... FILE...', ['-r   remove directories and their contents recursively', '-f   ignore nonexistent files, never prompt', 'WARNING: there is no recycle bin!']],
+  rmdir: ['rmdir - remove empty directories', 'rmdir DIRECTORY...', ['Fails if the directory is not empty (use rm -r instead).']],
+  man: ['man - an interface to the system reference manuals', 'man PAGE', ['Press q to quit a manual page.']],
+  find: ['find - search for files in a directory hierarchy', 'find [PATH] [-name PATTERN] [-type f|d]', ['-name  match file name (wildcards * and ? allowed, quote them)', '-type  f = files only, d = directories only']],
+  locate: ['locate - find files by name (using a database)', 'locate PATTERN', ['Prints every path that contains PATTERN. Very fast.']],
+  less: ['less - view a file one page at a time', 'less FILE', ['Space = next page, b = back, /word = search, q = quit']],
+  more: ['more - file perusal filter for crt viewing', 'more FILE', ['Space = next screen, q = quit. Can only move forward.']],
+  head: ['head - output the first part of files', 'head [-n NUM] FILE', ['-n NUM   print the first NUM lines (default 10)']],
+  tail: ['tail - output the last part of files', 'tail [-n NUM] FILE', ['-n NUM   print the last NUM lines (default 10)', '-f       follow the file as it grows (great for logs)']],
+  grep: ['grep - print lines that match patterns', 'grep [OPTION]... PATTERN FILE...', ['-i   ignore case', '-n   show line numbers', '-c   count matching lines', '-v   show lines that do NOT match']],
+  history: ['history - display the command history list', 'history', ['!N  re-runs command number N in a real bash shell']],
+  shutdown: ['shutdown - halt, power off or reboot the machine', 'shutdown [OPTION] [TIME]', ['-h now   power off immediately', '-r now   reboot immediately', 'Requires root privileges.']],
+  whoami: ['whoami - print effective user name', 'whoami', ['']],
+  sudo: ['sudo - execute a command as another user', 'sudo -i | sudo COMMAND', ['-i   start a root login shell']],
+  tree: ['tree - list contents of directories in a tree-like format', 'tree [DIR]', ['']],
+};
+
+function globRe(p, ci) {
+  return new RegExp('^' + p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', ci ? 'i' : '');
+}
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function joinP(a, b) { return a === '/' ? '/' + b : a + '/' + b; }
+function baseName(p) { const i = p.lastIndexOf('/'); return p.slice(i + 1) || '/'; }
+function contentLines(c) { const l = c.split('\n'); if (l.length && l[l.length - 1] === '') l.pop(); return l; }
+function L(t, c) { return [[t, c || '']]; }
+function E(msg) { return [L(msg, 'err')]; }
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(ms) { const d = new Date(ms); return `${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+
+function tokenize(line) {
+  const t = []; let cur = '', g = false, has = false, q = null;
+  const push = () => { if (has) t.push({ v: cur, g }); cur = ''; g = false; has = false; };
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) { if (ch === q) q = null; else cur += ch; continue; }
+    if (ch === '"' || ch === "'") { q = ch; has = true; continue; }
+    if (/\s/.test(ch)) { push(); continue; }
+    if (ch === '>') { push(); if (line[i + 1] === '>') { t.push({ op: '>>' }); i++; } else t.push({ op: '>' }); continue; }
+    if (ch === ';') { push(); t.push({ op: ';' }); continue; }
+    if (ch === '&' && line[i + 1] === '&') { push(); t.push({ op: '&&' }); i++; continue; }
+    if (ch === '*' || ch === '?') g = true;
+    cur += ch; has = true;
+  }
+  push();
+  return t;
+}
+
+function mkFS() {
+  const now = Date.now();
+  const d = (owner = 'root', children = {}) => ({ type: 'dir', owner, children, mtime: now });
+  const f = (content, owner = 'root') => ({ type: 'file', owner, content, mtime: now });
+  return d('root', {
+    bin: d('root', { bash: f('\x7fELF (binary)'), ls: f('\x7fELF (binary)'), cat: f('\x7fELF (binary)') }),
+    boot: d('root', { vmlinuz: f('(Linux kernel image)') }),
+    etc: d('root', { hostname: f(HOST + '\n'), hosts: f('127.0.0.1   localhost\n127.0.1.1   ' + HOST + '\n'), passwd: f(PASSWD), 'os-release': f(OSREL) }),
+    home: d('root', {
+      student: d('student', {
+        '.bashrc': f('# ~/.bashrc\nalias ll="ls -l"\n', 'student'),
+        Documents: d('student', { 'report.txt': f('Week 2 lab report\nTopic: Linux basic commands\n', 'student') }),
+        'displayfile.txt': f('Hello! This is displayfile.txt\ncat shows everything inside a file.\n', 'student'),
+        'oldfile.txt': f('This is the original file.\n', 'student'),
+        'movefile.txt': f('Move me or rename me!\n', 'student'),
+        'removefile.txt': f('Delete me with rm.\n', 'student'),
+      }),
+      ali: d('ali', { 'welcome.txt': f('Hi, I am Ali.\n', 'ali') }),
+    }),
+    lib: d(), media: d(), mnt: d(), opt: d(),
+    root: d('root', { 'secret.txt': f('Congratulations! Only root can read this file.\n') }),
+    sbin: d(), tmp: d('root'),
+    usr: d('root', { bin: d(), local: d(), sbin: d(), include: d() }),
+    var: d('root', { tmp: d(), log: d('root', { syslog: f(SYSLOG) }), cache: d(), spool: d() }),
+  });
+}
+
+class Shell {
+  constructor() { this.reset(); }
+  reset() { this.fs = mkFS(); this.user = 'student'; this.cwd = '/home/student'; this.oldpwd = this.cwd; this.stack = []; this.hist = []; this.sudoOk = false; }
+  home(u = this.user) { return USERS[u].home; }
+  promptInfo() {
+    const h = this.home();
+    const p = this.cwd === h ? '~' : this.cwd.startsWith(h + '/') ? '~' + this.cwd.slice(h.length) : this.cwd;
+    return { user: this.user, host: HOST, path: p, sym: this.user === 'root' ? '#' : '$' };
+  }
+  abs(p) {
+    if (!p) return this.cwd;
+    if (p === '~' || p.startsWith('~/')) p = this.home() + p.slice(1);
+    if (!p.startsWith('/')) p = this.cwd + '/' + p;
+    const parts = [];
+    for (const s of p.split('/')) { if (!s || s === '.') continue; if (s === '..') parts.pop(); else parts.push(s); }
+    return '/' + parts.join('/');
+  }
+  get(abs) {
+    if (abs === '/') return this.fs;
+    let n = this.fs;
+    for (const s of abs.split('/').slice(1)) { if (!n || n.type !== 'dir') return null; n = n.children[s]; }
+    return n || null;
+  }
+  parent(abs) { const i = abs.lastIndexOf('/'); return [abs.slice(0, i) || '/', abs.slice(i + 1)]; }
+  canRead(abs) { return this.user === 'root' || !(abs === '/root' || abs.startsWith('/root/')); }
+  canWrite(dir) {
+    if (this.user === 'root') return true;
+    const h = this.home();
+    return dir === h || dir.startsWith(h + '/') || dir === '/tmp' || dir.startsWith('/tmp/');
+  }
+  writeFile(abs, content) {
+    const [pd, name] = this.parent(abs); const pn = this.get(pd);
+    if (!pn || pn.type !== 'dir' || !this.canWrite(pd)) return false;
+    const ex = pn.children[name];
+    if (ex && ex.type === 'dir') return false;
+    if (ex) { ex.content = content; ex.mtime = Date.now(); }
+    else pn.children[name] = { type: 'file', owner: this.user, content, mtime: Date.now() };
+    return true;
+  }
+  clone(n) {
+    if (n.type === 'file') return { type: 'file', owner: this.user, content: n.content, mtime: Date.now() };
+    const c = {}; for (const k in n.children) c[k] = this.clone(n.children[k]);
+    return { type: 'dir', owner: this.user, children: c, mtime: Date.now() };
+  }
+  readFile(cmd, p) {
+    const abs = this.abs(p); const n = this.get(abs);
+    if (!n) return { err: E(`${cmd}: ${p}: No such file or directory`) };
+    if (n.type === 'dir') return { err: E(`${cmd}: ${p}: Is a directory`) };
+    if (!this.canRead(abs)) return { err: E(`${cmd}: ${p}: Permission denied`) };
+    return { lines: contentLines(n.content), abs };
+  }
+
+  /* ---- entry point ---- */
+  run(line) {
+    if (line.trim()) this.hist.push(line);
+    const toks = tokenize(line);
+    const groups = []; let cur = [], op = null;
+    for (const t of toks) {
+      if (t.op === ';' || t.op === '&&') { groups.push({ toks: cur, op }); op = t.op; cur = []; }
+      else cur.push(t);
+    }
+    groups.push({ toks: cur, op });
+    const out = { lines: [] };
+    let lastFail = false;
+    for (const g of groups) {
+      if (!g.toks.length) continue;
+      if (g.op === '&&' && lastFail) break;
+      const r = this.runSimple(g.toks);
+      out.lines.push(...r.lines);
+      if (r.action) { out.action = r.action; out.data = r.data; }
+      if (r.action === 'clear') out.lines = [];
+      if (r.pending) { out.pending = r.pending; break; }
+      lastFail = r.lines.some(l => l.some(s => s[1] === 'err'));
+    }
+    return out;
+  }
+  norm(r) {
+    if (!r) return { lines: [] };
+    if (Array.isArray(r)) return { lines: r };
+    if (!r.lines) r.lines = [];
+    if (r.pending) { const orig = r.pending.resolve; r.pending.resolve = pw => this.norm(orig(pw)); }
+    return r;
+  }
+  runSimple(toks) {
+    const ri = toks.findIndex(t => t.op === '>' || t.op === '>>');
+    let redirect = null;
+    if (ri >= 0) {
+      const target = toks[ri + 1];
+      if (!target || target.op) return { lines: E("bash: syntax error near unexpected token `newline'") };
+      redirect = { file: target.v, append: toks[ri].op === '>>' };
+      toks = toks.slice(0, ri);
+    }
+    const cmd = toks[0] ? toks[0].v : '';
+    let args = [];
+    for (const t of toks.slice(1)) {
+      if (t.g && cmd !== 'find' && cmd !== 'locate') args.push(...this.expand(t.v)); else args.push(t.v);
+    }
+    let r = this.norm(this.dispatch(cmd, args));
+    if (redirect && !r.pending) {
+      const errs = r.lines.filter(l => l.some(s => s[1] === 'err'));
+      const text = r.lines.filter(l => !l.some(s => s[1] === 'err')).map(l => l.map(s => s[0]).join('')).join('\n');
+      const abs = this.abs(redirect.file); const ex = this.get(abs);
+      const content = (redirect.append && ex && ex.type === 'file' ? ex.content : '') + (text ? text + '\n' : '');
+      if (!this.writeFile(abs, content)) errs.push(...E(`bash: ${redirect.file}: Permission denied or not a valid file`));
+      r = { lines: errs, action: r.action, data: r.data };
+    }
+    return r;
+  }
+  expand(v) {
+    const i = v.lastIndexOf('/');
+    const dirPart = i >= 0 ? v.slice(0, i + 1) : '';
+    const dabs = this.abs(dirPart || '.'); const dn = this.get(dabs);
+    if (!dn || dn.type !== 'dir') return [v];
+    const re = globRe(v.slice(i + 1));
+    const m = Object.keys(dn.children).filter(n => !n.startsWith('.') && re.test(n)).sort();
+    return m.length ? m.map(n => dirPart + n) : [v];
+  }
+  runAs(args) { return this.runSimple(args.map(v => ({ v, g: false }))); }
+
+  dispatch(cmd, a) {
+    switch (cmd) {
+      case 'pwd': return [L(this.cwd)];
+      case 'whoami': return [L(this.user)];
+      case 'echo': return [L(a.join(' '))];
+      case 'date': return [L(new Date().toString().replace(/ GMT.*/, ''))];
+      case 'clear': return { action: 'clear' };
+      case 'history': return this.hist.map((h, i) => L(String(i + 1).padStart(5) + '  ' + h));
+      case 'help': return this.help();
+      case 'cd': return this.cd(a);
+      case 'ls': return this.ls(a);
+      case 'touch': return this.touch(a);
+      case 'mkdir': return this.mkdir(a);
+      case 'cat': return this.cat(a);
+      case 'cp': return this.cpmv('cp', a);
+      case 'mv': return this.cpmv('mv', a);
+      case 'rm': return this.rm(a);
+      case 'rmdir': return this.rmdir(a);
+      case 'nano': return this.nano(a);
+      case 'head': case 'tail': return this.headTail(cmd, a);
+      case 'less': case 'more': return this.pager(cmd, a);
+      case 'grep': return this.grep(a);
+      case 'find': return this.find(a);
+      case 'locate': return this.locate(a);
+      case 'man': return this.man(a);
+      case 'tree': return this.tree(a);
+      case 'su': return this.su(a);
+      case 'sudo': return this.sudo(a);
+      case 'exit': case 'logout': return this.exit();
+      case 'shutdown': case 'poweroff': case 'reboot': return this.shutdown(cmd, a);
+      default: return E(`${cmd}: command not found`);
+    }
+  }
+  help() {
+    return [L('Commands you can practise here:', 'yellow'),
+      L('  Lab 2   : su  cd  pwd  ls  touch  mkdir  nano  cat  cp  mv  rm  rmdir'),
+      L('  Extra   : man  find  locate  less  more  head  tail  grep  history  shutdown'),
+      L('  Bonus   : whoami  echo  tree  clear  sudo  exit  date'),
+      L('Tips: Tab = auto-complete · ↑/↓ = previous commands · Ctrl+L = clear', 'muted'),
+      L('Passwords: this simulator accepts any password you type.', 'muted')];
+  }
+  cd(a) {
+    let p = a[0];
+    if (!p || p === '~') p = this.home();
+    if (p === '-') p = this.oldpwd;
+    const abs = this.abs(p); const n = this.get(abs);
+    if (!n) return E(`bash: cd: ${a[0]}: No such file or directory`);
+    if (n.type !== 'dir') return E(`bash: cd: ${a[0]}: Not a directory`);
+    if (!this.canRead(abs)) return E(`bash: cd: ${a[0]}: Permission denied`);
+    this.oldpwd = this.cwd; this.cwd = abs;
+    return a[0] === '-' ? [L(abs)] : [];
+  }
+  longLine(name, n) {
+    const isD = n.type === 'dir';
+    const links = isD ? 2 + Object.values(n.children).filter(c => c.type === 'dir').length : 1;
+    const size = isD ? 4096 : n.content.length;
+    return [[`${isD ? 'drwxr-xr-x' : '-rw-r--r--'} ${String(links).padStart(2)} ${n.owner.padEnd(7)} ${n.owner.padEnd(7)} ${String(size).padStart(5)} ${fmtDate(n.mtime)} `, ''], [name, isD ? 'dir' : '']];
+  }
+  ls(a) {
+    let flags = ''; const paths = [];
+    for (const x of a) { if (x.startsWith('-') && x.length > 1) flags += x.slice(1); else paths.push(x); }
+    const long = flags.includes('l'), all = flags.includes('a');
+    const bad = flags.replace(/[la1]/g, '');
+    if (bad) return E(`ls: invalid option -- '${bad[0]}' (try -l or -a)`);
+    if (!paths.length) paths.push('.');
+    const out = [], files = [], dirs = [];
+    for (const p of paths) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (!n) { out.push(...E(`ls: cannot access '${p}': No such file or directory`)); continue; }
+      if (n.type === 'dir') {
+        if (!this.canRead(abs)) { out.push(...E(`ls: cannot open directory '${p}': Permission denied`)); continue; }
+        dirs.push([p, abs, n]);
+      } else files.push([p, n]);
+    }
+    if (files.length) {
+      if (long) files.forEach(([p, n]) => out.push(this.longLine(p, n)));
+      else out.push(files.flatMap(([p], i) => [[p, ''], ...(i < files.length - 1 ? [['  ', '']] : [])]));
+    }
+    const multi = dirs.length + files.length > 1;
+    dirs.forEach(([p, abs, n], di) => {
+      if (multi) { if (files.length || di) out.push(L('')); out.push(L(p + ':')); }
+      let ents = Object.keys(n.children).sort((x, y) => x.replace(/^\./, '').localeCompare(y.replace(/^\./, ''))).filter(k => all || !k.startsWith('.')).map(k => [k, n.children[k]]);
+      if (all) ents = [['.', n], ['..', this.get(this.parent(abs)[0]) || n], ...ents];
+      if (long) { out.push(L('total ' + ents.length * 4)); ents.forEach(([k, c]) => out.push(this.longLine(k, c))); }
+      else if (ents.length) out.push(ents.flatMap(([k, c], i) => [[k, c.type === 'dir' ? 'dir' : ''], ...(i < ents.length - 1 ? [['  ', '']] : [])]));
+    });
+    return out;
+  }
+  touch(a) {
+    if (!a.length) return E('touch: missing file operand');
+    const out = [];
+    for (const p of a) {
+      const abs = this.abs(p); const [pd, name] = this.parent(abs); const pn = this.get(pd);
+      if (!pn || pn.type !== 'dir') { out.push(...E(`touch: cannot touch '${p}': No such file or directory`)); continue; }
+      if (!this.canWrite(pd)) { out.push(...E(`touch: cannot touch '${p}': Permission denied`)); continue; }
+      if (pn.children[name]) pn.children[name].mtime = Date.now();
+      else pn.children[name] = { type: 'file', owner: this.user, content: '', mtime: Date.now() };
+    }
+    return out;
+  }
+  mkdir(a) {
+    const parents = a.includes('-p'); const ps = a.filter(x => !x.startsWith('-'));
+    if (!ps.length) return E('mkdir: missing operand');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p);
+      if (parents) {
+        let cur = '/';
+        for (const seg of abs.split('/').slice(1)) {
+          const n = this.get(cur); const nx = joinP(cur, seg);
+          if (!n.children[seg]) {
+            if (!this.canWrite(cur)) { out.push(...E(`mkdir: cannot create directory '${p}': Permission denied`)); break; }
+            n.children[seg] = { type: 'dir', owner: this.user, children: {}, mtime: Date.now() };
+          } else if (n.children[seg].type !== 'dir') { out.push(...E(`mkdir: cannot create directory '${p}': Not a directory`)); break; }
+          cur = nx;
+        }
+        continue;
+      }
+      const [pd, name] = this.parent(abs); const pn = this.get(pd);
+      if (!pn || pn.type !== 'dir') { out.push(...E(`mkdir: cannot create directory '${p}': No such file or directory`)); continue; }
+      if (pn.children[name]) { out.push(...E(`mkdir: cannot create directory '${p}': File exists`)); continue; }
+      if (!this.canWrite(pd)) { out.push(...E(`mkdir: cannot create directory '${p}': Permission denied`)); continue; }
+      pn.children[name] = { type: 'dir', owner: this.user, children: {}, mtime: Date.now() };
+    }
+    return out;
+  }
+  cat(a) {
+    if (!a.length) return E('cat: please give a file name, e.g.  cat displayfile.txt');
+    const out = [];
+    for (const p of a) { const r = this.readFile('cat', p); if (r.err) out.push(...r.err); else r.lines.forEach(l => out.push(L(l))); }
+    return out;
+  }
+  cpmv(cmd, a) {
+    let rec = false; const ps = [];
+    for (const x of a) { if (x.startsWith('-') && x.length > 1) { if (/[rR]/.test(x)) rec = true; } else ps.push(x); }
+    if (!ps.length) return E(`${cmd}: missing file operand`);
+    if (ps.length < 2) return E(`${cmd}: missing destination file operand after '${ps[0]}'`);
+    const dst = ps.pop(); const dabs = this.abs(dst); const dn = this.get(dabs);
+    if (ps.length > 1 && (!dn || dn.type !== 'dir')) return E(`${cmd}: target '${dst}' is not a directory`);
+    const out = [];
+    for (const src of ps) {
+      const sabs = this.abs(src); const sn = this.get(sabs);
+      if (!sn || !this.canRead(sabs)) { out.push(...E(`${cmd}: cannot stat '${src}': ${sn ? 'Permission denied' : 'No such file or directory'}`)); continue; }
+      if (cmd === 'cp' && sn.type === 'dir' && !rec) { out.push(...E(`cp: -r not specified; omitting directory '${src}'`)); continue; }
+      const target = dn && dn.type === 'dir' ? joinP(dabs, baseName(sabs)) : dabs;
+      if (target === sabs) { out.push(...E(`${cmd}: '${src}' and '${dst}' are the same file`)); continue; }
+      if (target.startsWith(sabs + '/')) { out.push(...E(`${cmd}: cannot ${cmd === 'cp' ? 'copy' : 'move'} '${src}' to a subdirectory of itself`)); continue; }
+      const [pd, name] = this.parent(target); const pn = this.get(pd);
+      if (!pn || pn.type !== 'dir') { out.push(...E(`${cmd}: cannot create '${dst}': No such file or directory`)); continue; }
+      if (!this.canWrite(pd)) { out.push(...E(`${cmd}: cannot create '${dst}': Permission denied`)); continue; }
+      if (pn.children[name] && pn.children[name].type === 'dir' && sn.type === 'file') { out.push(...E(`${cmd}: cannot overwrite directory '${dst}'`)); continue; }
+      if (cmd === 'cp') pn.children[name] = this.clone(sn);
+      else {
+        const [spd, sname] = this.parent(sabs);
+        if (!this.canWrite(spd)) { out.push(...E(`mv: cannot move '${src}': Permission denied`)); continue; }
+        delete this.get(spd).children[sname];
+        sn.mtime = Date.now(); pn.children[name] = sn;
+      }
+    }
+    return out;
+  }
+  rm(a) {
+    let rec = false, force = false; const ps = [];
+    for (const x of a) { if (x.startsWith('-') && x.length > 1) { if (/[rR]/.test(x)) rec = true; if (x.includes('f')) force = true; } else ps.push(x); }
+    if (!ps.length) return E('rm: missing operand');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (abs === '/') { out.push(...E("rm: it is dangerous to operate recursively on '/' — refused!")); continue; }
+      if (!n) { if (!force) out.push(...E(`rm: cannot remove '${p}': No such file or directory`)); continue; }
+      if (n.type === 'dir' && !rec) { out.push(...E(`rm: cannot remove '${p}': Is a directory`)); continue; }
+      const [pd, name] = this.parent(abs);
+      if (!this.canWrite(pd)) { out.push(...E(`rm: cannot remove '${p}': Permission denied`)); continue; }
+      delete this.get(pd).children[name];
+    }
+    return out;
+  }
+  rmdir(a) {
+    const ps = a.filter(x => !x.startsWith('-'));
+    if (!ps.length) return E('rmdir: missing operand');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (!n) { out.push(...E(`rmdir: failed to remove '${p}': No such file or directory`)); continue; }
+      if (n.type !== 'dir') { out.push(...E(`rmdir: failed to remove '${p}': Not a directory`)); continue; }
+      if (Object.keys(n.children).length) { out.push(...E(`rmdir: failed to remove '${p}': Directory not empty`)); continue; }
+      const [pd, name] = this.parent(abs);
+      if (!this.canWrite(pd)) { out.push(...E(`rmdir: failed to remove '${p}': Permission denied`)); continue; }
+      delete this.get(pd).children[name];
+    }
+    return out;
+  }
+  nano(a) {
+    const p = a.find(x => !x.startsWith('-'));
+    if (!p) return E('nano: please give a file name, e.g.  nano fileopen.txt');
+    const abs = this.abs(p); const n = this.get(abs);
+    if (n && n.type === 'dir') return E(`nano: ${p}: Is a directory`);
+    if (n && !this.canRead(abs)) return E(`nano: ${p}: Permission denied`);
+    const [pd] = this.parent(abs); const pn = this.get(pd);
+    return { action: 'nano', data: { abs, name: p, content: n ? n.content : '', writable: !!pn && pn.type === 'dir' && this.canWrite(pd), isNew: !n } };
+  }
+  headTail(cmd, a) {
+    let n = 10; const files = [];
+    for (let i = 0; i < a.length; i++) {
+      const x = a[i];
+      if (x === '-n') n = parseInt(a[++i], 10);
+      else if (/^-n\d+$/.test(x)) n = parseInt(x.slice(2), 10);
+      else if (/^-\d+$/.test(x)) n = parseInt(x.slice(1), 10);
+      else if (x === '-f') continue;
+      else files.push(x);
+    }
+    if (isNaN(n)) return E(`${cmd}: invalid number of lines`);
+    if (!files.length) return E(`${cmd}: please give a file, e.g.  ${cmd} -n 3 /etc/passwd`);
+    const out = [];
+    files.forEach((f, i) => {
+      const r = this.readFile(cmd, f);
+      if (r.err) { out.push(...r.err); return; }
+      if (files.length > 1) { if (i) out.push(L('')); out.push(L(`==> ${f} <==`, 'yellow')); }
+      (cmd === 'head' ? r.lines.slice(0, n) : r.lines.slice(Math.max(0, r.lines.length - n))).forEach(l => out.push(L(l)));
+    });
+    return out;
+  }
+  pager(cmd, a) {
+    const p = a.find(x => !x.startsWith('-'));
+    if (!p) return E(`Missing filename ("${cmd} --help" for help)`);
+    const r = this.readFile(cmd, p);
+    if (r.err) return r.err;
+    const out = r.lines.map(l => L(l));
+    if (cmd === 'less') out.push(L('(END)  ← in a real terminal press q to quit', 'inv'));
+    return out;
+  }
+  hlSegs(line, re) {
+    if (!re) return [[line, '']];
+    const segs = []; let last = 0; re.lastIndex = 0; let m;
+    while ((m = re.exec(line)) !== null) {
+      if (!m[0].length) { re.lastIndex++; continue; }
+      if (m.index > last) segs.push([line.slice(last, m.index), '']);
+      segs.push([m[0], 'hl']); last = m.index + m[0].length;
+    }
+    if (last < line.length) segs.push([line.slice(last), '']);
+    return segs.length ? segs : [['', '']];
+  }
+  grep(a) {
+    let ci = false, num = false, cnt = false, inv = false; const rest = [];
+    for (const x of a) {
+      if (x.startsWith('-') && x.length > 1 && !rest.length) { for (const ch of x.slice(1)) { if (ch === 'i') ci = true; else if (ch === 'n') num = true; else if (ch === 'c') cnt = true; else if (ch === 'v') inv = true; } }
+      else rest.push(x);
+    }
+    const pat = rest.shift();
+    if (pat === undefined) return E('Usage: grep [-i -n -c -v] PATTERN FILE...');
+    if (!rest.length) return E(`grep: please give a file to search, e.g.  grep ${pat} /etc/passwd`);
+    const re = new RegExp(escRe(pat), ci ? 'gi' : 'g');
+    const multi = rest.length > 1; const out = [];
+    for (const f of rest) {
+      const r = this.readFile('grep', f);
+      if (r.err) { out.push(...r.err); continue; }
+      let c = 0;
+      r.lines.forEach((ln, idx) => {
+        re.lastIndex = 0; const hit = re.test(ln);
+        if (hit !== inv) {
+          c++;
+          if (!cnt) {
+            const seg = [];
+            if (multi) seg.push([f + ':', 'purple']);
+            if (num) seg.push([(idx + 1) + ':', 'green']);
+            seg.push(...this.hlSegs(ln, inv ? null : re));
+            out.push(seg);
+          }
+        }
+      });
+      if (cnt) out.push(L((multi ? f + ':' : '') + c));
+    }
+    return out;
+  }
+  find(a) {
+    let start = '.', name = null, type = null, ci = false, i = 0;
+    if (a[0] && !a[0].startsWith('-')) { start = a[0]; i = 1; }
+    for (; i < a.length; i++) {
+      if (a[i] === '-name') name = a[++i];
+      else if (a[i] === '-iname') { name = a[++i]; ci = true; }
+      else if (a[i] === '-type') type = a[++i];
+      else return E(`find: unknown predicate '${a[i]}'`);
+    }
+    const abs = this.abs(start); const n = this.get(abs);
+    if (!n) return E(`find: '${start}': No such file or directory`);
+    const re = name ? globRe(name, ci) : null; const out = [];
+    const walk = (node, disp, nm, ab) => {
+      const okT = !type || (type === 'd' && node.type === 'dir') || (type === 'f' && node.type === 'file');
+      if (okT && (!re || re.test(nm))) out.push(L(disp, node.type === 'dir' ? 'dir' : ''));
+      if (node.type !== 'dir') return;
+      if (!this.canRead(ab)) { out.push(...E(`find: '${disp}': Permission denied`)); return; }
+      Object.keys(node.children).sort().forEach(k => walk(node.children[k], disp === '/' ? '/' + k : disp.replace(/\/$/, '') + '/' + k, k, joinP(ab, k)));
+    };
+    walk(n, start, baseName(abs), abs);
+    return out;
+  }
+  locate(a) {
+    const term = a.find(x => !x.startsWith('-'));
+    if (!term) return E('locate: no pattern to search for specified');
+    const out = [];
+    const walk = (node, ab) => {
+      if (ab !== '/' && ab.includes(term)) out.push(L(ab));
+      if (node.type === 'dir') Object.keys(node.children).sort().forEach(k => walk(node.children[k], joinP(ab, k)));
+    };
+    walk(this.fs, '/');
+    return out;
+  }
+  man(a) {
+    const p = a[0];
+    if (!p) return [L('What manual page do you want?'), L("For example, try 'man man'.")];
+    const m = MAN[p];
+    if (!m) return E(`No manual entry for ${p}`);
+    const H = (p.toUpperCase() + '(1)');
+    const out = [L(H.padEnd(22) + 'User Commands'.padEnd(22) + H, 'bold'), L(''), L('NAME', 'bold'), L('       ' + m[0]), L(''), L('SYNOPSIS', 'bold'), L('       ' + m[1]), L(''), L('DESCRIPTION', 'bold')];
+    m[2].forEach(x => out.push(L('       ' + x)));
+    out.push(L(''), L(' Manual page ' + p + '(1) line 1 (press q to quit)', 'inv'));
+    return out;
+  }
+  tree(a) {
+    const p = a[0] || '.'; const abs = this.abs(p); const n = this.get(abs);
+    if (!n) return E(`${p} [error opening dir]`);
+    if (n.type !== 'dir') return [L(p)];
+    const out = [L(p, 'dir')]; let dc = 0, fc = 0;
+    const walk = (node, prefix, ab) => {
+      const ks = Object.keys(node.children).filter(k => !k.startsWith('.')).sort();
+      ks.forEach((k, i) => {
+        const last = i === ks.length - 1; const c = node.children[k];
+        out.push([[prefix + (last ? '└── ' : '├── '), 'muted'], [k, c.type === 'dir' ? 'dir' : '']]);
+        if (c.type === 'dir') { dc++; if (this.canRead(joinP(ab, k))) walk(c, prefix + (last ? '    ' : '│   '), joinP(ab, k)); }
+        else fc++;
+      });
+    };
+    walk(n, '', abs);
+    out.push(L(''), L(`${dc} directories, ${fc} files`));
+    return out;
+  }
+  su(a) {
+    let login = false, target = 'root';
+    for (const x of a) { if (x === '-' || x === '-l' || x === '--login') login = true; else target = x; }
+    if (!USERS[target]) return E(`su: user ${target} does not exist`);
+    const go = () => {
+      this.stack.push({ user: this.user, cwd: this.cwd });
+      this.user = target;
+      if (login) { this.oldpwd = this.cwd; this.cwd = this.home(target); }
+      return [];
+    };
+    if (this.user === 'root') return go();
+    return { pending: { prompt: 'Password: ', resolve: pw => pw ? go() : E('su: Authentication failure') } };
+  }
+  sudo(a) {
+    if (!a.length) return E('usage: sudo -i  |  sudo COMMAND');
+    const go = () => {
+      if (a[0] === '-i' || (a[0] === 'su' && (a.length === 1 || a[1] === '-'))) {
+        this.stack.push({ user: this.user, cwd: this.cwd }); this.user = 'root'; this.oldpwd = this.cwd; this.cwd = '/root'; return [];
+      }
+      const prev = this.user; this.user = 'root';
+      const r = this.runAs(a);
+      if (this.user === 'root') this.user = prev;
+      return r;
+    };
+    if (this.user === 'root' || this.sudoOk) return go();
+    return { pending: { prompt: `[sudo] password for ${this.user}: `, resolve: pw => { if (!pw) return E('sudo: 1 incorrect password attempt'); this.sudoOk = true; return go(); } } };
+  }
+  exit() {
+    if (!this.stack.length) return [L('This is the first login shell — nothing to exit back to. (A real terminal window would close.)', 'muted')];
+    const s = this.stack.pop(); this.user = s.user; this.cwd = s.cwd;
+    return [L('logout', 'muted')];
+  }
+  shutdown(cmd, a) {
+    if (this.user !== 'root') return E(`${cmd}: Permission denied — only root can do this. Switch first with  su -  or  sudo -i`);
+    if (a.includes('-c')) return [L('No scheduled shutdown to cancel.', 'muted')];
+    const reboot = cmd === 'reboot' || a.includes('-r');
+    return { lines: [L(`Broadcast message from root@${HOST} on pts/0 (${new Date().toString().slice(0, 24)}):`, 'yellow'), L(''), L(`The system will ${reboot ? 'reboot' : 'power off'} now!`, 'yellow')], action: 'shutdown', data: { reboot } };
+  }
+}
+if (typeof module !== 'undefined') module.exports = { Shell, CMD_NAMES };
+
+</script>
+<script>
+/* ================= Data ================= */
+const GROUPS = [
+  { title: 'Navigate & switch user', c: 'var(--pink)', cd: 'var(--pink-d)', items: [
+    { k: 'su', d: '<u>s</u>witch <u>u</u>ser', s: 'su - ali', p: 'To switch between users' },
+    { k: 'cd', d: '<u>c</u>hange <u>d</u>irectory', s: 'cd /etc', p: 'To navigate across directories' },
+    { k: 'pwd', d: '<u>p</u>rint <u>w</u>orking <u>d</u>irectory', s: 'pwd', p: 'To check your current working directory' },
+    { k: 'ls', d: '<u>l</u>i<u>s</u>t', s: 'ls -l', p: 'To list the content of a directory' },
+  ]},
+  { title: 'Create & view files', c: 'var(--peach)', cd: 'var(--peach-d)', items: [
+    { k: 'touch', d: 'create (empty) file', s: 'touch emptyfile.txt', p: 'To create an empty file' },
+    { k: 'mkdir', d: '<u>m</u>a<u>k</u>e <u>dir</u>ectory', s: 'mkdir dir1', p: 'To create a new directory' },
+    { k: 'nano', d: 'new / edit file', s: 'nano fileopen.txt', p: 'To edit or modify content in files' },
+    { k: 'cat', d: 'display content', s: 'cat displayfile.txt', p: 'To display the content of a file' },
+  ]},
+  { title: 'Copy, move & delete', c: 'var(--lav)', cd: 'var(--lav-d)', items: [
+    { k: 'cp', d: '<u>c</u>o<u>p</u>y', s: 'cp oldfile.txt newfile.txt', p: 'To copy a file' },
+    { k: 'mv', d: '<u>m</u>o<u>v</u>e', s: 'mv movefile.txt newfile.txt', p: 'To move or rename a file (2 uses)' },
+    { k: 'rm', d: '<u>r</u>e<u>m</u>ove', s: 'rm removefile.txt', p: 'To delete a file' },
+    { k: 'rmdir', d: '<u>r</u>e<u>m</u>ove <u>dir</u>ectory', s: 'rmdir dir1', p: 'To delete an empty directory' },
+  ]},
+  { title: 'Extra commands', c: 'var(--sky)', cd: 'var(--sky-d)', items: [
+    { k: 'man', d: '<u>man</u>ual pages', s: 'man ls', p: 'To read the built-in help for any command' },
+    { k: 'find', d: 'search for files', s: 'find /home -name "*.txt"', p: 'To search a folder tree by name or type' },
+    { k: 'locate', d: 'quick search by name', s: 'locate hostname', p: 'To instantly find paths containing a word' },
+    { k: 'less', d: 'view page by page', s: 'less /etc/os-release', p: 'To read long files (scroll back & forth)' },
+    { k: 'more', d: 'view screen by screen', s: 'more /etc/passwd', p: 'To read long files (forward only)' },
+    { k: 'head', d: 'first lines of a file', s: 'head -n 3 /etc/passwd', p: 'To show the top of a file (default 10)' },
+    { k: 'tail', d: 'last lines of a file', s: 'tail -n 3 /var/log/syslog', p: 'To show the end of a file — great for logs' },
+    { k: 'grep', d: 'search text inside files', s: 'grep root /etc/passwd', p: 'To find lines that match a word' },
+    { k: 'history', d: 'previous commands', s: 'history', p: 'To list the commands you have run' },
+    { k: 'shutdown', d: 'power off / reboot', s: 'shutdown -h now', p: 'To turn off the system (root only)' },
+  ]},
+];
+
+const DEMOS = {
+  su: [
+    { c: 'whoami', n: 'First, check which user you are logged in as.' },
+    { c: 'su - ali', n: 'Switch to user ali. A password is asked — it stays invisible while typing.' },
+    { c: 'whoami', n: 'You are now ali.' },
+    { c: 'pwd', n: 'The "-" gives a login shell, so you start in ali\'s home directory.' },
+    { c: 'exit', n: 'exit takes you back to the previous user (student).' },
+  ],
+  cd: [
+    { c: 'pwd', n: 'Start: where am I? In my home directory.' },
+    { c: 'cd /etc', n: 'Go to /etc using an absolute path (it starts with /).' },
+    { c: 'pwd', n: 'The prompt and pwd both confirm the new location.' },
+    { c: 'cd ..', n: '".." means the parent directory — one level up.' },
+    { c: 'pwd', n: 'Now we are at / — the root directory.' },
+    { c: 'cd', n: 'cd on its own always brings you back home (~).' },
+  ],
+  pwd: [
+    { c: 'pwd', n: 'pwd prints the full path of the directory you are in.' },
+    { c: 'cd /var/log', n: 'Move somewhere else…' },
+    { c: 'pwd', n: '…and pwd shows the new full path.' },
+  ],
+  ls: [
+    { c: 'ls', n: 'List the current directory. Blue names are directories.' },
+    { c: 'ls -l', n: '-l = long listing: permissions, owner, size and date.' },
+    { c: 'ls /', n: 'Give a path to list another directory — here the root /.' },
+  ],
+  touch: [
+    { c: 'ls', n: 'Before: no emptyfile.txt yet.' },
+    { c: 'touch emptyfile.txt', n: 'touch creates the file. No output means success.' },
+    { c: 'ls -l emptyfile.txt', n: 'Size is 0 bytes — the file is empty.' },
+  ],
+  mkdir: [
+    { c: 'mkdir dir1', n: 'Create a new directory called dir1.' },
+    { c: 'ls -l', n: 'dir1 appears in blue and starts with "d" (directory).' },
+    { c: 'cd dir1', n: 'You can now enter it…' },
+    { c: 'pwd', n: '…and confirm where you are.' },
+  ],
+  nano: [
+    { c: 'nano fileopen.txt', nano: 'Hello from nano!\nLinux is fun.', n: 'nano opens the editor. Type your text, Ctrl+O to save, Ctrl+X to exit.' },
+    { c: 'cat fileopen.txt', n: 'Back in the shell — cat proves the text was saved.' },
+  ],
+  cat: [
+    { c: 'cat displayfile.txt', n: 'cat prints the whole content of the file.' },
+    { c: 'cat /etc/hostname', n: 'Works with any path — this is the machine\'s name.' },
+  ],
+  cp: [
+    { c: 'ls', n: 'Before: only oldfile.txt exists.' },
+    { c: 'cp oldfile.txt newfile.txt', n: 'cp SOURCE DESTINATION makes a copy.' },
+    { c: 'ls', n: 'Now both files exist.' },
+    { c: 'cat newfile.txt', n: 'The copy has the same content as the original.' },
+  ],
+  mv: [
+    { c: 'mv movefile.txt newfile.txt', n: 'Use 1 — RENAME: same folder, new name.' },
+    { c: 'ls', n: 'movefile.txt is gone; newfile.txt is there.' },
+    { c: 'mkdir archive', n: 'Make a folder to move into…' },
+    { c: 'mv newfile.txt archive/', n: 'Use 2 — MOVE: destination is a directory.' },
+    { c: 'ls archive', n: 'The file now lives inside archive/.' },
+  ],
+  rm: [
+    { c: 'ls', n: 'removefile.txt is here.' },
+    { c: 'rm removefile.txt', n: 'rm deletes it — there is NO recycle bin in Linux!' },
+    { c: 'ls', n: 'Gone.' },
+  ],
+  rmdir: [
+    { c: 'mkdir dir1', n: 'Create an empty directory.' },
+    { c: 'rmdir dir1', n: 'rmdir removes it — it works because dir1 is empty.' },
+    { c: 'mkdir box && touch box/item.txt', n: 'Now a directory WITH a file inside…' },
+    { c: 'rmdir box', n: '…rmdir refuses: it only deletes EMPTY directories.' },
+    { c: 'rm -r box', n: 'rm -r removes a directory and everything inside it.' },
+  ],
+  man: [{ c: 'man rmdir', n: 'Every command has a manual page. Press q to quit it.' }],
+  find: [
+    { c: 'find /home -name "*.txt"', n: 'Search /home and below for names ending in .txt.' },
+    { c: 'find /var -type d', n: '-type d shows only directories.' },
+  ],
+  locate: [{ c: 'locate hostname', n: 'locate prints every path that contains the word.' }],
+  less: [{ c: 'less /etc/os-release', n: 'less shows long files one page at a time. q quits.' }],
+  more: [{ c: 'more /etc/passwd', n: 'more pages forward through a file (Space = next).' }],
+  head: [
+    { c: 'head -n 3 /etc/passwd', n: 'Only the FIRST 3 lines.' },
+  ],
+  tail: [
+    { c: 'tail -n 3 /var/log/syslog', n: 'Only the LAST 3 lines — the newest log entries.' },
+  ],
+  grep: [
+    { c: 'grep root /etc/passwd', n: 'Show only the lines containing "root".' },
+    { c: 'grep -n error /var/log/syslog', n: '-n adds line numbers. Great for finding errors in logs.' },
+  ],
+  history: [
+    { c: 'pwd', n: 'Run a couple of commands…' },
+    { c: 'ls', n: '…' },
+    { c: 'history', n: 'history lists everything you typed, numbered.' },
+  ],
+  shutdown: [
+    { c: 'whoami', n: 'We are a normal user.' },
+    { c: 'shutdown -h now', n: 'Refused — only root may shut the system down.' },
+    { c: 'sudo -i', n: 'Become root with sudo -i (your own password).' },
+    { c: 'shutdown -h now', n: '-h now = halt (power off) immediately.' },
+  ],
+};
+
+const SPEEDS = { slow: { type: 95, pause: 1700 }, normal: { type: 48, pause: 1050 }, fast: { type: 18, pause: 480 } };
+let speed = 'normal';
+const ALL = GROUPS.flatMap(g => g.items.map(i => ({ ...i, c: g.c, cd: g.cd })));
+const byKey = Object.fromEntries(ALL.map(i => [i.k, i]));
+
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1800); }
+
+/* ================= Rendering helpers ================= */
+function lineEl(line) {
+  const d = document.createElement('div'); d.className = 'ln';
+  for (const [t, c] of line) { const s = document.createElement('span'); if (c) s.className = c; s.textContent = t; d.appendChild(s); }
+  return d;
+}
+function promptFrag(info) {
+  const f = document.createDocumentFragment();
+  const u = document.createElement('span'); u.className = 'u' + (info.user === 'root' ? ' root' : ''); u.textContent = `${info.user}@${info.host}`;
+  const c = document.createElement('span'); c.textContent = ':';
+  const p = document.createElement('span'); p.className = 'pth'; p.textContent = info.path;
+  const s = document.createElement('span'); s.textContent = info.sym + ' ';
+  f.append(u, c, p, s); return f;
+}
+
+/* ================= Left column ================= */
+function buildLeft() {
+  const wrap = $('#groups');
+  let delay = 0;
+  GROUPS.forEach(g => {
+    const sec = document.createElement('div'); sec.className = 'group';
+    sec.innerHTML = `<h3><i style="background:${g.cd}"></i>${g.title}</h3>`;
+    g.items.forEach(it => {
+      const el = document.createElement('div'); el.className = 'cmd'; el.dataset.k = it.k;
+      el.style.setProperty('--c', g.c); el.style.setProperty('--cd', g.cd); el.style.animationDelay = (delay += 30) + 'ms';
+      el.innerHTML = `<div class="top"><span class="name">${it.k}</span><span class="desc">${it.d}</span></div>
+        <div class="row2"><code></code><span class="acts"><button class="icon-btn" data-a="watch" title="Watch it run">▶ Watch</button><button class="icon-btn" data-a="try" title="Type it in the practice terminal">⌨ Try</button></span></div>
+        <div class="purpose">${it.p}</div>`;
+      el.querySelector('code').textContent = it.s;
+      el.addEventListener('click', e => {
+        const a = e.target.closest('[data-a]');
+        if (a && a.dataset.a === 'try') { tryCmd(it.s); return; }
+        stopTour(); playDemo(it.k);
+      });
+      sec.appendChild(el);
+    });
+    wrap.appendChild(sec);
+  });
+  $('#search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase().trim();
+    document.querySelectorAll('.cmd').forEach(el => {
+      const it = byKey[el.dataset.k];
+      el.style.display = !q || (it.k + ' ' + it.d.replace(/<[^>]+>/g, '') + ' ' + it.p + ' ' + it.s).toLowerCase().includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('.group').forEach(g => { g.style.display = [...g.querySelectorAll('.cmd')].some(c => c.style.display !== 'none') ? '' : 'none'; });
+  });
+  // filesystem tree chips
+  const row = $('#fsRow');
+  const top = ['home', 'etc', 'opt', 'boot', 'bin', 'mnt', 'tmp', ['usr', ['bin', 'local', 'sbin', 'include']], 'root', 'lib', 'sbin', ['var', ['tmp', 'log', 'cache', 'spool']], 'media'];
+  top.forEach(t => {
+    if (Array.isArray(t)) {
+      const s = document.createElement('div'); s.className = 'sub';
+      s.innerHTML = `<button class="chip" data-p="/${t[0]}">/${t[0]}</button><div class="fs-row">${t[1].map(x => `<button class="chip" data-p="/${t[0]}/${x}">/${x}</button>`).join('')}</div>`;
+      row.appendChild(s);
+    } else {
+      const b = document.createElement('button'); b.className = 'chip'; b.dataset.p = '/' + t; b.textContent = '/' + t; row.appendChild(b);
+    }
+  });
+  document.querySelectorAll('.fstree .chip').forEach(b => b.addEventListener('click', () => tryCmd('cd ' + b.dataset.p)));
+}
+
+/* ================= Demo terminal ================= */
+const demoSh = new Shell();
+let demoToken = 0, currentKey = null, tourToken = 0;
+const dBody = $('#demoBody');
+
+function setInfo(it) {
+  $('#info').innerHTML = `<div class="big"></div><div class="d1"></div><div class="d2"><code></code> &nbsp;—&nbsp; <span></span></div>`;
+  $('#info .big').textContent = it.k;
+  $('#info .d1').innerHTML = it.d;
+  $('#info .d2 code').textContent = it.s;
+  $('#info .d2 span').textContent = it.p;
+}
+function setCaption(i, total, text) {
+  const c = $('#caption');
+  c.querySelector('.stepn').textContent = total ? `Step ${i + 1} / ${total}` : 'Done';
+  const t = c.querySelector('.txt'); t.textContent = text; t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
+  const dots = $('#dots'); dots.innerHTML = '';
+  for (let j = 0; j < total; j++) { const d = document.createElement('i'); if (j < i) d.className = 'done'; if (j === i) d.className = 'on'; dots.appendChild(d); }
+}
+function scrollDemo() { dBody.scrollTop = dBody.scrollHeight; }
+function demoTitle() { const p = demoSh.promptInfo(); $('#demoTitle').textContent = `${p.user}@${p.host}: ${p.path} — demo`; }
+
+async function typeInto(el, text, tok) {
+  for (const ch of text) {
+    if (tok !== demoToken) return false;
+    el.textContent += ch; scrollDemo();
+    await sleep(SPEEDS[speed].type * (0.6 + Math.random() * 0.8));
+  }
+  return tok === demoToken;
+}
+async function printLines(lines, tok) {
+  for (const l of lines) {
+    if (tok !== demoToken) return;
+    dBody.appendChild(lineEl(l)); scrollDemo();
+    await sleep(lines.length > 8 ? 25 : 70);
+  }
+}
+async function nanoAnim(step, tok) {
+  const box = document.createElement('div'); box.className = 'mini-nano';
+  const fname = step.c.split(' ')[1];
+  box.innerHTML = `<div class="nh"><span>GNU nano 7.2</span><span></span><span class="m"></span></div><div class="nb"></div><div class="ns"></div><div class="nf"><span><b>^O</b>Write Out</span><span><b>^X</b>Exit</span><span><b>^K</b>Cut</span><span><b>^U</b>Paste</span></div>`;
+  box.querySelector('.nh span:nth-child(2)').textContent = fname;
+  dBody.appendChild(box); scrollDemo();
+  await sleep(500);
+  const body = box.querySelector('.nb');
+  const cur = document.createElement('span'); cur.className = 'cursor';
+  const txt = document.createElement('span'); body.append(txt, cur);
+  box.querySelector('.m').textContent = 'Modified';
+  if (!await typeInto(txt, step.nano, tok)) return false;
+  await sleep(400);
+  const st = box.querySelector('.ns');
+  st.innerHTML = '<span>Ctrl+O … File Name to Write: ' + fname + '</span>'; await sleep(SPEEDS[speed].pause * 0.8);
+  if (tok !== demoToken) return false;
+  st.innerHTML = `<span>[ Wrote ${step.nano.split('\n').length} lines ]</span>`; box.querySelector('.m').textContent = '';
+  demoSh.writeFile(demoSh.abs(fname), step.nano + '\n');
+  await sleep(SPEEDS[speed].pause * 0.8);
+  if (tok !== demoToken) return false;
+  st.innerHTML = '<span>Ctrl+X … exiting nano</span>'; await sleep(600);
+  box.style.transition = 'opacity .4s'; box.style.opacity = '.35'; cur.remove();
+  return true;
+}
+
+async function playDemo(key) {
+  const tok = ++demoToken;
+  currentKey = key;
+  const it = byKey[key];
+  document.querySelectorAll('.cmd').forEach(c => c.classList.toggle('active', c.dataset.k === key));
+  const card = document.querySelector(`.cmd[data-k="${key}"]`);
+  if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  setInfo(it);
+  demoSh.reset(); dBody.innerHTML = ''; $('#demoPower').classList.remove('on'); demoTitle();
+  const steps = DEMOS[key];
+  for (let i = 0; i < steps.length; i++) {
+    if (tok !== demoToken) return false;
+    const s = steps[i];
+    setCaption(i, steps.length, s.n);
+    const ln = document.createElement('div'); ln.className = 'ln';
+    ln.appendChild(promptFrag(demoSh.promptInfo()));
+    const typed = document.createElement('span'); typed.className = 'typed';
+    const cur = document.createElement('span'); cur.className = 'cursor';
+    ln.append(typed, cur); dBody.appendChild(ln); scrollDemo();
+    await sleep(350);
+    if (!await typeInto(typed, s.c, tok)) return false;
+    await sleep(320); cur.remove();
+    if (s.nano) { demoSh.hist.push(s.c); if (!await nanoAnim(s, tok)) return false; await sleep(SPEEDS[speed].pause * 0.6); continue; }
+    let r = demoSh.run(s.c);
+    if (r.pending) {
+      const pl = document.createElement('div'); pl.className = 'ln'; pl.textContent = r.pending.prompt;
+      const c2 = document.createElement('span'); c2.className = 'cursor'; pl.appendChild(c2);
+      dBody.appendChild(pl); scrollDemo();
+      await sleep(700);
+      const h = document.createElement('span'); h.className = 'hint'; h.textContent = '  ← password typed (hidden, nothing shows)'; pl.insertBefore(h, c2);
+      await sleep(SPEEDS[speed].pause);
+      if (tok !== demoToken) return false;
+      c2.remove();
+      r = r.pending.resolve('secret');
+    }
+    await printLines(r.lines, tok);
+    demoTitle();
+    if (r.action === 'shutdown') { await sleep(900); $('#demoPower').classList.add('on'); await sleep(2200); }
+    await sleep(SPEEDS[speed].pause);
+  }
+  if (tok !== demoToken) return false;
+  if (!$('#demoPower').classList.contains('on')) {
+    const ln = document.createElement('div'); ln.className = 'ln';
+    ln.appendChild(promptFrag(demoSh.promptInfo()));
+    const cur = document.createElement('span'); cur.className = 'cursor'; ln.appendChild(cur); dBody.appendChild(ln); scrollDemo();
+  }
+  setCaption(steps.length, steps.length, `Finished! Now press "⌨ Try this below" and run  ${it.s}  yourself.`);
+  $('#caption .stepn').textContent = '✓ Done';
+  document.querySelector(`.cmd[data-k="${key}"]`)?.classList.remove('active');
+  return true;
+}
+function stopDemo() { demoToken++; document.querySelectorAll('.cmd').forEach(c => c.classList.remove('active')); }
+async function tour() {
+  const t = ++tourToken;
+  $('#tourBtn').textContent = '■ Stop tour';
+  for (const it of ALL) {
+    if (t !== tourToken) return;
+    const ok = await playDemo(it.k);
+    if (!ok || t !== tourToken) return;
+    await sleep(900);
+  }
+  stopTour();
+}
+function stopTour() { tourToken++; $('#tourBtn').textContent = '▶ Play all commands'; }
+$('#tourBtn').addEventListener('click', () => { if ($('#tourBtn').textContent.startsWith('■')) { stopTour(); stopDemo(); } else tour(); });
+$('#replayBtn').addEventListener('click', () => { stopTour(); playDemo(currentKey || 'su'); });
+$('#stopBtn').addEventListener('click', () => { stopTour(); stopDemo(); setCaption(0, 0, 'Stopped. Click a command on the left to watch it.'); $('#caption .stepn').textContent = 'Paused'; });
+$('#tryThisBtn').addEventListener('click', () => tryCmd(byKey[currentKey || 'su'].s));
+document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => {
+  speed = b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b));
+}));
+
+/* ================= Practice terminal ================= */
+const sh = new Shell();
+const pBody = $('#pBody'), pOut = $('#pOut'), pIn = $('#pIn');
+let pending = null, histIdx = null, nanoState = null;
+const ran = []; // {line, user, ok}
+
+function pScroll() { pBody.scrollTop = pBody.scrollHeight; }
+function pPrint(lines) { lines.forEach(l => pOut.appendChild(lineEl(l))); pScroll(); }
+function renderPrompt() {
+  const pp = $('#pPrompt'); pp.innerHTML = '';
+  if (pending) { pp.textContent = pending.prompt; pIn.classList.add('secret'); }
+  else { pp.appendChild(promptFrag(sh.promptInfo())); pIn.classList.remove('secret'); }
+  const p = sh.promptInfo(); $('#pTitle').textContent = `${p.user}@${p.host}: ${p.path}`;
+}
+function echoLine(text) {
+  const ln = document.createElement('div'); ln.className = 'ln';
+  if (pending) ln.textContent = pending.prompt;
+  else { ln.appendChild(promptFrag(sh.promptInfo())); const t = document.createElement('span'); t.className = 'typed'; t.textContent = text; ln.appendChild(t); }
+  pOut.appendChild(ln);
+}
+function welcome() {
+  pPrint([
+    [['Welcome to the HCT Linux practice terminal ', 'green'], ['(simulated Ubuntu 24.04)', 'muted']],
+    [['⚠ For practice only — your exam will be on a real Linux VM.', 'yellow']],
+    [['Type ', ''], ['help', 'yellow'], [' to see all commands, or click ', ''], ['⌨ Try', 'yellow'], [' on any card.', '']],
+    [['Tab', 'yellow'], [' auto-completes · ', 'muted'], ['↑ ↓', 'yellow'], [' recall commands · passwords: type anything', 'muted']],
+    [['', '']],
+  ]);
+}
+function handleResult(r, line) {
+  if (r.action === 'clear') pOut.innerHTML = '';
+  pPrint(r.lines);
+  ran.push({ line, user: sh.user, ok: !r.lines.some(l => l.some(s => s[1] === 'err')) });
+  if (r.pending) { pending = r.pending; }
+  if (r.action === 'nano') openNano(r.data);
+  if (r.action === 'shutdown') setTimeout(() => $('#pPower').classList.add('on'), 900);
+  renderPrompt(); checkTasks();
+}
+pIn.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = pIn.value; pIn.value = ''; histIdx = null;
+    echoLine(v);
+    if (pending) { const p = pending; pending = null; const r = p.resolve(v); handleResult(r, '(password)'); ran.pop(); ran.push({ line: '__auth', user: sh.user, ok: true }); checkTasks(); return; }
+    if (!v.trim()) { renderPrompt(); pScroll(); return; }
+    handleResult(sh.run(v), v.trim());
+  } else if (e.key === 'Tab') { e.preventDefault(); if (!pending) complete(); }
+  else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    if (pending || !sh.hist.length) return; e.preventDefault();
+    if (histIdx === null) histIdx = sh.hist.length;
+    histIdx = Math.max(0, Math.min(sh.hist.length, histIdx + (e.key === 'ArrowUp' ? -1 : 1)));
+    pIn.value = sh.hist[histIdx] || '';
+    setTimeout(() => pIn.setSelectionRange(pIn.value.length, pIn.value.length));
+  } else if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); pOut.innerHTML = ''; }
+  else if (e.ctrlKey && (e.key === 'c' || e.key === 'C') && !window.getSelection().toString()) {
+    e.preventDefault(); echoLine(pIn.value + '^C'); pIn.value = ''; pending = null; renderPrompt(); pScroll();
+  }
+});
+pBody.addEventListener('click', () => { if (!window.getSelection().toString()) pIn.focus(); });
+function commonPrefix(a) { let p = a[0]; for (const s of a) while (!s.startsWith(p)) p = p.slice(0, -1); return p; }
+function complete() {
+  const v = pIn.value; const word = v.match(/(\S*)$/)[1]; const before = v.slice(0, v.length - word.length);
+  let cands, labels;
+  if (!before.trim()) { cands = CMD_NAMES.filter(c => c.startsWith(word)).map(c => c + ' '); labels = cands; }
+  else {
+    const i = word.lastIndexOf('/'); const dirPart = i >= 0 ? word.slice(0, i + 1) : ''; const base = word.slice(i + 1);
+    const dn = sh.get(sh.abs(dirPart || '.'));
+    if (!dn || dn.type !== 'dir') return;
+    const ks = Object.keys(dn.children).filter(k => k.startsWith(base) && (base.startsWith('.') || !k.startsWith('.'))).sort();
+    cands = ks.map(k => dirPart + k + (dn.children[k].type === 'dir' ? '/' : ' '));
+    labels = ks.map(k => k + (dn.children[k].type === 'dir' ? '/' : ''));
+  }
+  if (!cands.length) return;
+  if (cands.length === 1) { pIn.value = before + cands[0]; return; }
+  const pre = commonPrefix(cands);
+  if (pre.length > word.length) { pIn.value = before + pre; return; }
+  echoLine(v); pPrint([[[labels.join('   '), 'muted']]]);
+}
+function tryCmd(cmd) {
+  if (nanoState) closeNano();
+  pending = null; renderPrompt();
+  pIn.value = cmd;
+  $('#practicePanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => { pIn.focus(); pIn.setSelectionRange(cmd.length, cmd.length); }, 350);
+  toast('Press Enter to run:  ' + cmd);
+}
+$('#pClear').addEventListener('click', () => { pOut.innerHTML = ''; pIn.focus(); });
+$('#pReset').addEventListener('click', () => { sh.reset(); ran.length = 0; pending = null; pOut.innerHTML = ''; welcome(); pPrint([[['Files reset to the starting state.', 'yellow']]]); renderPrompt(); pIn.focus(); });
+$('#powerOn').addEventListener('click', async () => {
+  $('#pPower').classList.remove('on');
+  sh.user = 'student'; sh.cwd = sh.home(); sh.stack = []; sh.sudoOk = false; pOut.innerHTML = '';
+  const boot = ['[  OK  ] Started Journal Service.', '[  OK  ] Mounted /boot.', '[  OK  ] Reached target Local File Systems.', '[  OK  ] Started OpenSSH server daemon.', '[  OK  ] Reached target Multi-User System.', '', 'Ubuntu 24.04 LTS hct-lab tty1', 'student logged in.', ''];
+  for (const b of boot) { pPrint([b.startsWith('[') ? [['[', ''], ['  OK  ', 'green'], [b.slice(7), '']] : [[b, b ? 'muted' : '']]]); await sleep(170); }
+  renderPrompt(); pIn.focus();
+});
+
+/* nano */
+function openNano(d) {
+  nanoState = { ...d, orig: d.content };
+  $('#nano').hidden = false; $('#nanoName').textContent = d.name; $('#nanoMod').textContent = '';
+  const ta = $('#nanoTa'); ta.value = d.content.replace(/\n$/, '');
+  $('#nanoStatus').innerHTML = d.isNew ? '<span>[ New File ]</span>' : `<span>[ Read ${contentLinesCount(d.content)} lines ]</span>`;
+  if (!d.writable) $('#nanoStatus').innerHTML = '<span>[ File is unwritable — Permission denied ]</span>';
+  setTimeout(() => ta.focus(), 30);
+}
+function contentLinesCount(c) { return c ? c.replace(/\n$/, '').split('\n').length : 0; }
+function nanoSave() {
+  const ta = $('#nanoTa'); const text = ta.value + (ta.value && !ta.value.endsWith('\n') ? '\n' : '');
+  if (!nanoState.writable || !sh.writeFile(nanoState.abs, text)) { $('#nanoStatus').innerHTML = '<span>[ Error writing ' + nanoState.name + ': Permission denied ]</span>'; return false; }
+  nanoState.orig = text; nanoState.content = text; $('#nanoMod').textContent = '';
+  $('#nanoStatus').innerHTML = `<span>[ Wrote ${contentLinesCount(text)} lines ]</span>`; checkTasks(); return true;
+}
+function nanoModified() { const v = $('#nanoTa').value; return v !== nanoState.orig.replace(/\n$/, ''); }
+function closeNano() { $('#nano').hidden = true; nanoState = null; renderPrompt(); checkTasks(); setTimeout(() => pIn.focus(), 20); }
+function nanoExit() {
+  if (!nanoModified()) return closeNano();
+  const st = $('#nanoStatus');
+  st.innerHTML = '<span>Save modified buffer?</span> <button data-y="y">Y Yes</button><button data-y="n">N No</button><button data-y="c">^C Cancel</button>';
+  nanoState.asking = true;
+  st.querySelectorAll('button').forEach(b => b.addEventListener('click', () => answerNano(b.dataset.y)));
+}
+function answerNano(a) {
+  if (!nanoState) return;
+  nanoState.asking = false;
+  if (a === 'y') { if (nanoSave()) closeNano(); }
+  else if (a === 'n') closeNano();
+  else { $('#nanoStatus').innerHTML = ''; $('#nanoTa').focus(); }
+}
+$('#nanoTa').addEventListener('input', () => { $('#nanoMod').textContent = nanoModified() ? 'Modified' : ''; });
+$('#nanoTa').addEventListener('keydown', e => {
+  if (nanoState && nanoState.asking) {
+    e.preventDefault();
+    const k = e.key.toLowerCase(); if (k === 'y' || k === 'n') answerNano(k); else if (e.ctrlKey && k === 'c' || k === 'escape') answerNano('c');
+    return;
+  }
+  if (e.ctrlKey && (e.key === 'o' || e.key === 'O' || e.key === 's' || e.key === 'S')) { e.preventDefault(); nanoSave(); }
+  else if (e.ctrlKey && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); nanoExit(); }
+});
+$('#nanoSave').addEventListener('click', () => { nanoSave(); $('#nanoTa').focus(); });
+$('#nanoExit').addEventListener('click', nanoExit);
+
+/* ================= Challenges ================= */
+const H = '/home/student';
+const isFile = p => { const n = sh.get(p); return n && n.type === 'file'; };
+const isDir = p => { const n = sh.get(p); return n && n.type === 'dir'; };
+const ranMatch = re => ran.some(r => r.ok && re.test(r.line));
+const TASKS = [
+  { t: 'Print your current working directory', h: 'pwd', ok: () => ranMatch(/^pwd$/) },
+  { t: 'List your home directory in long format', h: 'ls -l', ok: () => ranMatch(/^ls\b.*-\w*l/) },
+  { t: 'Create a directory named <code>lab2</code> in your home', h: 'mkdir lab2', ok: () => isDir(H + '/lab2') },
+  { t: 'Go into lab2 and create an empty file <code>notes.txt</code>', h: 'cd lab2 → touch notes.txt', ok: () => isFile(H + '/lab2/notes.txt') },
+  { t: 'Open <code>notes.txt</code> in nano, type something and save', h: 'nano notes.txt', ok: () => isFile(H + '/lab2/notes.txt') && sh.get(H + '/lab2/notes.txt').content.trim() },
+  { t: 'Copy notes.txt to <code>backup.txt</code> (inside lab2)', h: 'cp notes.txt backup.txt', ok: () => isFile(H + '/lab2/backup.txt') },
+  { t: 'Rename backup.txt to <code>final.txt</code>', h: 'mv backup.txt final.txt', ok: () => isFile(H + '/lab2/final.txt') && !sh.get(H + '/lab2/backup.txt') },
+  { t: 'Switch to the <code>root</code> user', h: 'su -', ok: () => sh.user === 'root' },
+  { t: 'As root, read <code>/root/secret.txt</code>', h: 'cat /root/secret.txt', ok: () => ran.some(r => r.ok && r.user === 'root' && /^(cat|less|more|head|tail)\b.*secret\.txt/.test(r.line)) },
+  { t: 'Delete the whole <code>lab2</code> directory', h: 'rm -r /home/student/lab2', ok: () => done[2] && !sh.get(H + '/lab2') },
+];
+const done = TASKS.map(() => false);
+function buildTasks() {
+  $('#taskList').innerHTML = TASKS.map((t, i) => `<div class="task" id="task${i}"><span class="box">✓</span><div><div class="tx">${t.t}</div><div style="font-size:11.5px;color:var(--sub);margin-top:2px">hint: <code>${t.h}</code></div></div></div>`).join('');
+}
+function checkTasks() {
+  let changed = false;
+  TASKS.forEach((t, i) => {
+    if (!done[i] && t.ok()) { done[i] = true; changed = true; const el = $('#task' + i); el.classList.add('done', 'just'); toast('✅ Challenge ' + (i + 1) + ' complete!'); }
+  });
+  const n = done.filter(Boolean).length;
+  $('#progBar').style.width = (n / TASKS.length * 100) + '%';
+  $('#celebrate').classList.toggle('on', n === TASKS.length);
+}
+
+/* ================= Init ================= */
+buildLeft(); buildTasks(); welcome(); renderPrompt();
+setInfo(byKey.su);
+setTimeout(() => playDemo('su'), 700);
+</script>
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body>
+</html>
