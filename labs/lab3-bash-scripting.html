@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 3 – Bash Scripting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f4f8; --ink:#1f2633; --sub:#5b6474; --line:#e2e5ec;
+  --acc:#e95420; --acc2:#77216f; --blue:#1f5fbf; --green:#1d8a3b;
+  --t-bg:#300a24; --t-bar:#2b2b2b; --t-fg:#eeeeec; --t-green:#8ae234; --t-blue:#729fcf; --t-red:#ff6b6b; --t-yellow:#fce94f; --t-muted:#b39cad; --t-cyan:#34e2e2;
+  --mono:'Ubuntu Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 28px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+header h1{margin:0;font-size:23px;font-weight:800;letter-spacing:.4px;color:#4a5160;text-transform:uppercase}
+header h1 span{color:var(--acc)}
+.course{font-size:13px;color:var(--sub);padding:4px 10px;border:1px solid var(--line);border-radius:999px}
+.spacer{flex:1}
+.btn{font:600 13px Inter,sans-serif;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn:hover{border-color:#b9bfcc;transform:translateY(-1px)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{font:600 12px Inter;border:0;background:#fff;padding:8px 11px;cursor:pointer;color:var(--sub)}
+.seg button.on{background:var(--ink);color:#fff}
+.disclaimer{max-width:1560px;margin:16px auto 0;padding:0 28px}
+.disclaimer div{display:flex;gap:12px;align-items:center;background:#fff4e5;border:1px solid #f5c27a;border-left:6px solid #e8890c;border-radius:12px;padding:12px 16px;font-size:14px;color:#5c3a05;line-height:1.45}
+.disclaimer .ic{font-size:22px}.disclaimer b{color:#a24f00}
+.wrap{max-width:1560px;margin:0 auto;padding:18px 28px}
+.sec-title{display:flex;align-items:center;gap:10px;margin:6px 0 12px}
+.sec-title .tag{font:700 11px Inter;letter-spacing:1px;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:#fde3d8;color:var(--acc)}
+.sec-title .tag.g{background:#dff6e4;color:var(--green)}
+.sec-title h2{margin:0;font-size:19px}
+
+/* ---- watch area ---- */
+.watch{display:grid;grid-template-columns:270px 1fr;gap:18px}
+.chapters{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;align-self:start;position:sticky;top:84px}
+.chapters h4{margin:10px 6px 6px;font-size:11.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--sub)}
+.chapters h4:first-child{margin-top:2px}
+.chap{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:10px;padding:9px 10px;cursor:pointer;font:500 13.5px Inter;color:var(--ink);transition:.15s;position:relative}
+.chap:hover{background:#f5f6fa}
+.chap .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#f1f2f6;font-size:15px;flex:none}
+.chap.on{background:#fff1ea;border-color:#f6c4ae}
+.chap.on .ic{background:var(--acc);color:#fff}
+.chap .ck{margin-left:auto;color:var(--green);font-weight:800;opacity:0}
+.chap.seen .ck{opacity:1}
+.chapters .prog{height:6px;border-radius:9px;background:#eceef3;margin:12px 6px 2px;overflow:hidden}
+.chapters .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),#f6a35b);transition:width .4s}
+.stage{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.stage-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stage-head .part{font:700 11px Inter;letter-spacing:1px;text-transform:uppercase;color:var(--acc2);background:#f3e4f1;padding:4px 9px;border-radius:999px}
+.stage-head h3{margin:0;font-size:19px;animation:fadeUp .35s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}}
+@keyframes pop{from{opacity:0;transform:scale(.85)}}
+.banner{margin-bottom:12px;min-height:20px}
+.recipe{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.rstep{flex:1;min-width:150px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;transition:.25s;background:#fafbfd}
+.rstep .lbl{font-size:12.5px;color:var(--sub);font-weight:600}
+.rstep.on{border-color:var(--acc);background:#fff3ec;transform:translateY(-3px);box-shadow:0 8px 18px rgba(233,84,32,.18)}
+.rstep.done{border-color:#bfe6c9;background:#f2fbf4}
+.arrow{align-self:center;color:#c0c5d0;font-size:20px}
+.kc{display:inline-flex;align-items:center;gap:5px;font:700 14px Inter}
+.kc kbd{font:700 13px Inter;background:#fff;border:1px solid #c9cedb;border-bottom-width:3px;border-radius:7px;padding:3px 9px;color:#222;min-width:30px;text-align:center}
+.rules{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.rule{border:2px solid var(--line);border-radius:12px;padding:10px 11px;background:#fafbfd;transition:.25s;font-size:12.8px;line-height:1.4}
+.rule .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#e5e7ee;font:800 12px Inter;margin-bottom:5px;transition:.25s}
+.rule code{font:700 13.5px var(--mono);color:var(--blue);background:#eef3ff;padding:1px 5px;border-radius:5px}
+.rule .red{color:#d12d1b}
+.rule.on{border-color:var(--acc);background:#fff3ec;transform:translateY(-3px);box-shadow:0 8px 18px rgba(233,84,32,.18)}
+.rule.on .n{background:var(--acc);color:#fff}
+.rule.seen .n{background:var(--green);color:#fff}
+.rule.imp{border-style:dashed}
+.taskbox{background:linear-gradient(120deg,#f7f4fb,#fdf3ee);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.55;color:#3c3346;animation:fadeUp .35s both}
+.taskbox b{color:var(--acc2)}
+.chk{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chk span{background:#fff;border:1px solid #e3d6ea;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600}
+.stage-main{display:grid;grid-template-columns:1fr 300px;gap:14px}
+.steps{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fafbfd;max-height:430px;overflow:auto}
+.steps h5{margin:2px 4px 8px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--sub)}
+.st{display:flex;gap:9px;padding:8px 8px;border-radius:9px;font-size:13.2px;line-height:1.45;color:var(--sub);transition:.25s}
+.st .b{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #cfd4de;display:grid;place-items:center;font:800 11px Inter;color:#98a0b0;transition:.25s}
+.st.on{background:#fff;color:var(--ink);box-shadow:0 2px 10px rgba(20,30,60,.08)}
+.st.on .b{border-color:var(--acc);background:var(--acc);color:#fff;animation:pulse 1.2s infinite}
+.st.done .b{border-color:var(--green);background:var(--green);color:#fff}
+.st.done{color:#4b5465}
+.st code{font:700 13.5px var(--mono);background:#eef0f6;padding:0 5px;border-radius:5px;color:#2b3242}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(233,84,32,.45)}100%{box-shadow:0 0 0 9px rgba(233,84,32,0)}}
+.controls{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.controls .grow{flex:1}
+.nextcall{animation:nudge 1.2s infinite}
+@keyframes nudge{50%{transform:translateX(4px)}}
+
+/* ---- terminals ---- */
+.term{background:var(--t-bg);border-radius:12px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(40,5,30,.28)}
+.term-bar{display:flex;align-items:center;gap:7px;background:var(--t-bar);padding:8px 12px;color:#c9c9c9;font:600 12.5px Inter}
+.term-bar .t{flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.term-bar .d{width:12px;height:12px;border-radius:50%}
+.term-body{font:16px/1.42 var(--mono);color:var(--t-fg);padding:10px 14px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+#dBody{height:430px}
+#pBody{height:430px;cursor:text}
+.term-body::-webkit-scrollbar{width:8px}.term-body::-webkit-scrollbar-thumb{background:#5a2a4c;border-radius:6px}
+.ln{min-height:1.42em;animation:lin .2s both}
+@keyframes lin{from{opacity:0;transform:translateY(3px)}}
+.u{color:var(--t-green);font-weight:700}.u.root{color:var(--t-red)}
+.pth{color:var(--t-blue);font-weight:700}
+.dir{color:var(--t-blue);font-weight:700}
+.exe{color:var(--t-green);font-weight:700}
+.err{color:#ff8f8f}
+.muted{color:var(--t-muted)}
+.yellow{color:var(--t-yellow)}
+.green{color:var(--t-green)}
+.purple{color:#ad7fa8}
+.bold{font-weight:700;color:#fff}
+.hl{background:var(--t-yellow);color:#300a24}
+.inv{background:var(--t-fg);color:var(--t-bg);padding:0 4px}
+.cursor{display:inline-block;width:.55em;height:1.1em;background:var(--t-fg);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.typed{color:#fff}
+.inputv{color:#fff;font-weight:700}
+.flash{animation:flash .9s}
+@keyframes flash{0%{background:rgba(255,80,80,.35)}100%{background:transparent}}
+/* nano screen (demo + practice) */
+.nano{position:absolute;left:0;right:0;bottom:0;top:36px;background:var(--t-bg);display:flex;flex-direction:column;font:16px/1.42 var(--mono);color:var(--t-fg);animation:lin .25s both}
+.nano[hidden]{display:none}
+.nano .nh{background:var(--t-fg);color:var(--t-bg);display:grid;grid-template-columns:1fr auto 1fr;padding:0 10px}
+.nano .nh .r{text-align:right}
+.nano .nb{flex:1;padding:4px 10px;overflow:auto;white-space:pre-wrap;color:#fff}
+.nano textarea{flex:1;background:transparent;border:0;outline:0;resize:none;color:#fff;font:16px/1.42 var(--mono);padding:4px 10px;caret-color:#fff}
+.nano .ns{text-align:center;min-height:1.42em}
+.nano .ns span{background:var(--t-fg);color:var(--t-bg);padding:0 6px}
+.nano .ns input{background:var(--t-fg);color:var(--t-bg);border:0;outline:0;font:16px var(--mono);padding:0 4px;width:240px}
+.nano .nf{display:grid;grid-template-columns:repeat(6,1fr);gap:0 8px;padding:0 4px 4px;font-size:14.5px;white-space:nowrap;overflow:hidden}
+.nano .nf div{transition:.2s;border-radius:3px;overflow:hidden;text-overflow:ellipsis}
+.nano .nf b{background:var(--t-fg);color:var(--t-bg);padding:0 2px;margin-right:5px;font-weight:400}
+.nano .nf div.hot{background:#e95420;color:#fff;transform:scale(1.08)}
+.nano .nf div.hot b{background:#fff;color:#e95420}
+.nano .nf button{all:unset;cursor:pointer}
+.sx-c{color:var(--t-cyan)}.sx-k{color:#73d216}.sx-b{color:#729fcf}.sx-s{color:#e9b96e}.sx-v{color:#ff6b6b}.sx-br{color:var(--t-cyan)}
+.keycaps{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:8px;z-index:5;pointer-events:none}
+.keycaps .kk{font:800 22px Inter;background:#fff;color:#222;border:1px solid #cfd3dc;border-bottom-width:5px;border-radius:10px;padding:8px 16px;box-shadow:0 10px 24px rgba(0,0,0,.35);animation:keypop .35s both}
+.keycaps .pl{color:#fff;font:800 22px Inter;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+@keyframes keypop{0%{opacity:0;transform:translateY(12px) scale(.8)}60%{transform:translateY(0) scale(1.08)}100%{opacity:1;transform:scale(1)}}
+.keycaps.out{opacity:0;transition:opacity .4s}
+
+/* ---- practice ---- */
+.pgrid{display:grid;grid-template-columns:1fr 340px;gap:16px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.inrow{display:flex;align-items:flex-start}
+.inrow input{flex:1;background:transparent;border:0;outline:0;color:#fff;font:16px/1.42 var(--mono);padding:0;margin:0;caret-color:#fff;min-width:40px}
+.inrow input.secret{color:transparent}
+.tasks{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fafbfd}
+.tasks h3{margin:0 0 4px;font-size:15px}
+.tprog{height:8px;background:#e7e9f0;border-radius:99px;overflow:hidden;margin:8px 0 8px}
+.tprog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22b14c,#7fd962);transition:width .5s}
+.task{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:6px 0;border-bottom:1px dashed #e6e8ef}
+.task:last-child{border:0}
+.task .box{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid #c3c8d4;display:grid;place-items:center;font-size:12px;color:#fff;transition:.25s;margin-top:1px}
+.task.done .box{background:#22b14c;border-color:#22b14c}
+.task.done .tx{color:var(--sub);text-decoration:line-through}
+.task code{font:700 13px var(--mono);background:#eef0f6;padding:0 5px;border-radius:5px}
+.task.just{animation:tflash .9s}
+@keyframes tflash{0%{background:#dff6e4}100%{background:transparent}}
+.celebrate{display:none;text-align:center;margin-top:10px;padding:10px;border-radius:10px;background:#dff6e4;color:#1d6b33;font-weight:700;animation:pop .4s both}
+.celebrate.on{display:block}
+details.cheat{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+details.cheat summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:14px}
+.snip{margin:0 12px 12px;border-radius:9px;overflow:hidden;border:1px solid #e6dbe3}
+.snip .sh{display:flex;justify-content:space-between;align-items:center;background:#f6eef4;padding:5px 10px;font:600 12px Inter;color:#6b4462}
+.snip .sh button{font:600 11.5px Inter;border:1px solid #dcc7d6;background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer}
+.snip pre{margin:0;background:var(--t-bg);color:#fff;font:14.5px/1.4 var(--mono);padding:8px 10px;overflow:auto}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;color:var(--sub);font-size:12px;padding:4px 0 26px}
+@media (max-width:1180px){.stage-main{grid-template-columns:1fr}.steps{max-height:none}.rules{grid-template-columns:repeat(3,1fr)}.pgrid{grid-template-columns:1fr}}
+@media (max-width:860px){.watch{grid-template-columns:1fr}.chapters{position:static}header{position:static;padding:12px 16px}.wrap,.disclaimer{padding-left:14px;padding-right:14px}.rules{grid-template-columns:1fr 1fr}#dBody,#pBody{height:360px}.nano .nf{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lab 3 &nbsp;<span>Bash Scripting</span></h1>
+  <div class="course">CIS 2903 · Operating Systems</div>
+  <div class="spacer"></div>
+  <div class="seg" id="speed" title="Animation speed"><button data-s="slow">Slow</button><button data-s="normal" class="on">Normal</button><button data-s="fast">Fast</button></div>
+  <button class="btn primary" id="allBtn">▶ Play everything</button>
+</header>
+<div class="disclaimer" role="note"><div><span class="ic">⚠️</span><span><b>Disclaimer:</b> This page is a <b>simulated terminal for practice only</b>. It does not behave exactly like a real Linux system. <b>Your lab exam will be done on a real Linux Virtual Machine (VM)</b>, so make sure you also practise these steps there.</span></div></div>
+
+<div class="wrap">
+  <div class="sec-title"><span class="tag">Watch</span><h2>Points to remember, then the lab tasks</h2></div>
+  <div class="watch">
+    <nav class="chapters" id="chapters"></nav>
+    <section class="stage">
+      <div class="stage-head"><span class="part" id="sPart"></span><h3 id="sTitle"></h3></div>
+      <div class="banner" id="banner"></div>
+      <div class="stage-main">
+        <div class="term" id="dTerm">
+          <div class="term-bar"><span class="d" style="background:#e95420"></span><span class="d" style="background:#5a5a5a"></span><span class="d" style="background:#5a5a5a"></span><span class="t" id="dTitle">student@hct-lab: ~</span></div>
+          <div class="term-body" id="dBody"></div>
+          <div class="keycaps" id="keycaps"></div>
+        </div>
+        <div class="steps"><h5>Steps</h5><div id="stepList"></div></div>
+      </div>
+      <div class="controls">
+        <button class="btn sm" id="prevBtn">◀ Previous</button>
+        <button class="btn sm" id="replayBtn">↻ Replay</button>
+        <button class="btn sm" id="stopBtn">■ Stop</button>
+        <span class="grow"></span>
+        <button class="btn sm" id="tryBtn">⌨ Practise this below</button>
+        <button class="btn sm primary" id="nextBtn">Next ▶</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="sec-title" style="margin-top:28px" id="practice"><span class="tag g">Practice</span><h2>Your turn: write and run your own scripts</h2><span style="font-size:12px;color:#a24f00;background:#fff4e5;border:1px solid #f5c27a;padding:3px 9px;border-radius:999px">Practice only · Exam = real VM</span></div>
+  <div class="pgrid">
+    <div>
+      <div class="term" id="pTerm">
+        <div class="term-bar"><span class="d" style="background:#e95420"></span><span class="d" style="background:#5a5a5a"></span><span class="d" style="background:#5a5a5a"></span><span class="t" id="pTitle">student@hct-lab: ~</span>
+          <button class="btn sm" id="pClear" style="padding:3px 9px;font-size:11.5px">Clear</button><button class="btn sm" id="pReset" style="padding:3px 9px;font-size:11.5px">↺ Reset</button></div>
+        <div class="term-body" id="pBody"><div id="pOut"></div><div class="inrow"><span id="pPrompt"></span><input id="pIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type a Linux command"></div></div>
+        <div class="nano" id="nano" hidden>
+          <div class="nh"><span>GNU nano 7.2</span><span id="nName"></span><span class="r" id="nMod"></span></div>
+          <textarea id="nTa" spellcheck="false"></textarea>
+          <div class="ns" id="nStatus"></div>
+          <div class="nf" id="nFoot"></div>
+        </div>
+      </div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:8px">Tips: <b>Tab</b> completes names · <b>↑ ↓</b> recall commands · <b>Ctrl+C</b> stops a running script · in nano use <b>Ctrl+X</b>, then <b>Y</b>, then <b>Enter</b> (or click the shortcuts).</div>
+    </div>
+    <div>
+      <div class="tasks">
+        <h3>🎯 Lab 3 checklist</h3>
+        <div style="font-size:12px;color:var(--sub)">Each item ticks itself when you do it in the terminal.</div>
+        <div class="tprog"><i id="tBar"></i></div>
+        <div id="taskList"></div>
+        <div class="celebrate" id="celebrate">🎉 Lab 3 complete. Now repeat it on your real VM!</div>
+      </div>
+      <details class="cheat"><summary>📋 Script cheat sheet (from the lab)</summary><div id="snips"></div></details>
+    </div>
+  </div>
+  <footer>Simulated bash for practice. It supports variables, echo, read, if/elif/else, for/while loops and $(( )) arithmetic. Type <b>help</b> in the terminal for the full list.</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== Simulated Linux engine (no DOM) ===== */
+const USERS = { student: { home: '/home/student' }, ali: { home: '/home/ali' }, root: { home: '/root' } };
+const HOST = 'hct-lab';
+const CMD_NAMES = ['bash','cat','cd','chmod','clear','cp','date','echo','exit','find','grep','head','help','history','less','locate','ls','man','mkdir','more','mv','nano','pwd','rm','rmdir','shutdown','su','sudo','tail','touch','tree','whoami'];
+
+const PASSWD = `root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+syslog:x:104:110::/home/syslog:/usr/sbin/nologin
+student:x:1000:1000:Student,,,:/home/student:/bin/bash
+ali:x:1001:1001:Ali,,,:/home/ali:/bin/bash
+`;
+const OSREL = `PRETTY_NAME="Ubuntu 24.04 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+`;
+const SYSLOG = `Nov 18 09:00:01 hct-lab systemd[1]: Started Daily apt download activities.
+Nov 18 09:02:13 hct-lab kernel: e1000: eth0 NIC Link is Up 1000 Mbps
+Nov 18 09:05:42 hct-lab sshd[812]: Accepted password for student from 10.0.0.15
+Nov 18 09:10:07 hct-lab cron[901]: (root) CMD (run-parts /etc/cron.hourly)
+Nov 18 09:15:30 hct-lab app[1203]: error: could not connect to database
+Nov 18 09:15:31 hct-lab app[1203]: retrying in 5 seconds
+Nov 18 09:15:36 hct-lab app[1203]: connected to database
+Nov 18 09:20:11 hct-lab kernel: usb 1-1: new high-speed USB device
+Nov 18 09:25:44 hct-lab systemd[1]: Starting Cleanup of Temporary Directories...
+Nov 18 09:30:02 hct-lab app[1203]: error: disk usage above 90%
+Nov 18 09:31:15 hct-lab sshd[955]: Accepted password for ali from 10.0.0.22
+Nov 18 09:35:00 hct-lab systemd[1]: Finished Cleanup of Temporary Directories.
+`;
+
+const MAN = {
+  su: ['su - run a shell as another user', 'su [-] [USER]', ['-, -l   start a login shell (go to that user\'s home)', 'USER    defaults to root when omitted']],
+  cd: ['cd - change the working directory', 'cd [DIR]', ['cd        go to your home directory', 'cd ..     go up one level (parent)', 'cd -      go back to the previous directory', 'cd /      go to the root directory']],
+  pwd: ['pwd - print name of current/working directory', 'pwd', ['Prints the full (absolute) path of the directory you are in.']],
+  ls: ['ls - list directory contents', 'ls [OPTION]... [FILE]...', ['-l   use a long listing format', '-a   do not ignore entries starting with .', '-la  both of the above']],
+  touch: ['touch - change file timestamps / create empty files', 'touch FILE...', ['A FILE that does not exist is created empty.']],
+  mkdir: ['mkdir - make directories', 'mkdir [OPTION]... DIRECTORY...', ['-p   make parent directories as needed']],
+  nano: ['nano - Nano\'s ANOther editor', 'nano FILE', ['^O (Ctrl+O)  write out (save)', '^X (Ctrl+X)  exit']],
+  cat: ['cat - concatenate files and print on the standard output', 'cat [FILE]...', ['Prints the whole content of each FILE.']],
+  cp: ['cp - copy files and directories', 'cp [OPTION]... SOURCE DEST', ['-r   copy directories recursively']],
+  mv: ['mv - move (rename) files', 'mv SOURCE DEST', ['If DEST is a directory, SOURCE is moved into it;', 'otherwise SOURCE is renamed to DEST.']],
+  rm: ['rm - remove files or directories', 'rm [OPTION]... FILE...', ['-r   remove directories and their contents recursively', '-f   ignore nonexistent files, never prompt', 'WARNING: there is no recycle bin!']],
+  rmdir: ['rmdir - remove empty directories', 'rmdir DIRECTORY...', ['Fails if the directory is not empty (use rm -r instead).']],
+  man: ['man - an interface to the system reference manuals', 'man PAGE', ['Press q to quit a manual page.']],
+  find: ['find - search for files in a directory hierarchy', 'find [PATH] [-name PATTERN] [-type f|d]', ['-name  match file name (wildcards * and ? allowed, quote them)', '-type  f = files only, d = directories only']],
+  locate: ['locate - find files by name (using a database)', 'locate PATTERN', ['Prints every path that contains PATTERN. Very fast.']],
+  less: ['less - view a file one page at a time', 'less FILE', ['Space = next page, b = back, /word = search, q = quit']],
+  more: ['more - file perusal filter for crt viewing', 'more FILE', ['Space = next screen, q = quit. Can only move forward.']],
+  head: ['head - output the first part of files', 'head [-n NUM] FILE', ['-n NUM   print the first NUM lines (default 10)']],
+  tail: ['tail - output the last part of files', 'tail [-n NUM] FILE', ['-n NUM   print the last NUM lines (default 10)', '-f       follow the file as it grows (great for logs)']],
+  grep: ['grep - print lines that match patterns', 'grep [OPTION]... PATTERN FILE...', ['-i   ignore case', '-n   show line numbers', '-c   count matching lines', '-v   show lines that do NOT match']],
+  history: ['history - display the command history list', 'history', ['!N  re-runs command number N in a real bash shell']],
+  shutdown: ['shutdown - halt, power off or reboot the machine', 'shutdown [OPTION] [TIME]', ['-h now   power off immediately', '-r now   reboot immediately', 'Requires root privileges.']],
+  whoami: ['whoami - print effective user name', 'whoami', ['']],
+  sudo: ['sudo - execute a command as another user', 'sudo -i | sudo COMMAND', ['-i   start a root login shell']],
+  chmod: ['chmod - change file mode bits', 'chmod MODE FILE', ['+x     add execute permission for everyone', '-x     remove execute permission', '755    rwxr-xr-x (owner can write, all can run)', 'u+x    add execute for the owner (user) only']],
+  bash: ['bash - GNU Bourne-Again SHell', 'bash [FILE]', ['bash script.sh   runs a script even without execute permission', './script.sh      needs chmod +x first']],
+  echo: ['echo - display a line of text', 'echo [-n] [-e] [STRING]...', ['-n   do not print the trailing newline', '-e   understand \\n (new line) and \\t (tab)']],
+  read: ['read - read a line from the keyboard into variables', 'read [-p PROMPT] NAME...', ['-p PROMPT   show PROMPT on the same line first', 'read name   stores what the user types in $name']],
+  tree: ['tree - list contents of directories in a tree-like format', 'tree [DIR]', ['']],
+};
+
+function globRe(p, ci) {
+  return new RegExp('^' + p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', ci ? 'i' : '');
+}
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function joinP(a, b) { return a === '/' ? '/' + b : a + '/' + b; }
+function baseName(p) { const i = p.lastIndexOf('/'); return p.slice(i + 1) || '/'; }
+function contentLines(c) { const l = c.split('\n'); if (l.length && l[l.length - 1] === '') l.pop(); return l; }
+function modeStr(m) { let s = ''; for (const sh of [6, 3, 0]) { const v = (m >> sh) & 7; s += (v & 4 ? 'r' : '-') + (v & 2 ? 'w' : '-') + (v & 1 ? 'x' : '-'); } return s; }
+function nameCls(n) { return n.type === 'dir' ? 'dir' : ((n.mode ?? 0) & 0o111 ? 'exe' : ''); }
+function L(t, c) { return [[t, c || '']]; }
+function E(msg) { return [L(msg, 'err')]; }
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(ms) { const d = new Date(ms); return `${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+
+function tokenize(line) {
+  const t = []; let cur = '', g = false, has = false, q = null;
+  const push = () => { if (has) t.push({ v: cur, g }); cur = ''; g = false; has = false; };
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) { if (ch === q) q = null; else cur += ch; continue; }
+    if (ch === '"' || ch === "'") { q = ch; has = true; continue; }
+    if (/\s/.test(ch)) { push(); continue; }
+    if (ch === '>') { push(); if (line[i + 1] === '>') { t.push({ op: '>>' }); i++; } else t.push({ op: '>' }); continue; }
+    if (ch === ';') { push(); t.push({ op: ';' }); continue; }
+    if (ch === '&' && line[i + 1] === '&') { push(); t.push({ op: '&&' }); i++; continue; }
+    if (ch === '*' || ch === '?') g = true;
+    cur += ch; has = true;
+  }
+  push();
+  return t;
+}
+
+function mkFS() {
+  const now = Date.now();
+  const d = (owner = 'root', children = {}) => ({ type: 'dir', owner, children, mtime: now });
+  const f = (content, owner = 'root', mode = 0o644) => ({ type: 'file', owner, content, mtime: now, mode });
+  return d('root', {
+    bin: d('root', { bash: f('\x7fELF (binary)', 'root', 0o755), ls: f('\x7fELF (binary)', 'root', 0o755), cat: f('\x7fELF (binary)', 'root', 0o755) }),
+    boot: d('root', { vmlinuz: f('(Linux kernel image)') }),
+    etc: d('root', { hostname: f(HOST + '\n'), hosts: f('127.0.0.1   localhost\n127.0.1.1   ' + HOST + '\n'), passwd: f(PASSWD), 'os-release': f(OSREL) }),
+    home: d('root', {
+      student: d('student', {
+        '.bashrc': f('# ~/.bashrc\nalias ll="ls -l"\n', 'student'),
+        Desktop: d('student'), Documents: d('student'), Downloads: d('student'),
+      }),
+      ali: d('ali', { 'welcome.txt': f('Hi, I am Ali.\n', 'ali') }),
+    }),
+    lib: d(), media: d(), mnt: d(), opt: d(),
+    root: d('root', { 'secret.txt': f('Congratulations! Only root can read this file.\n') }),
+    sbin: d(), tmp: d('root'),
+    usr: d('root', { bin: d(), local: d(), sbin: d(), include: d() }),
+    var: d('root', { tmp: d(), log: d('root', { syslog: f(SYSLOG) }), cache: d(), spool: d() }),
+  });
+}
+
+class Shell {
+  constructor() { this.reset(); }
+  reset() { this.fs = mkFS(); this.user = 'student'; this.cwd = '/home/student'; this.oldpwd = this.cwd; this.stack = []; this.hist = []; this.sudoOk = false; }
+  home(u = this.user) { return USERS[u].home; }
+  promptInfo() {
+    const h = this.home();
+    const p = this.cwd === h ? '~' : this.cwd.startsWith(h + '/') ? '~' + this.cwd.slice(h.length) : this.cwd;
+    return { user: this.user, host: HOST, path: p, sym: this.user === 'root' ? '#' : '$' };
+  }
+  abs(p) {
+    if (!p) return this.cwd;
+    if (p === '~' || p.startsWith('~/')) p = this.home() + p.slice(1);
+    if (!p.startsWith('/')) p = this.cwd + '/' + p;
+    const parts = [];
+    for (const s of p.split('/')) { if (!s || s === '.') continue; if (s === '..') parts.pop(); else parts.push(s); }
+    return '/' + parts.join('/');
+  }
+  get(abs) {
+    if (abs === '/') return this.fs;
+    let n = this.fs;
+    for (const s of abs.split('/').slice(1)) { if (!n || n.type !== 'dir') return null; n = n.children[s]; }
+    return n || null;
+  }
+  parent(abs) { const i = abs.lastIndexOf('/'); return [abs.slice(0, i) || '/', abs.slice(i + 1)]; }
+  canRead(abs) { return this.user === 'root' || !(abs === '/root' || abs.startsWith('/root/')); }
+  canWrite(dir) {
+    if (this.user === 'root') return true;
+    const h = this.home();
+    return dir === h || dir.startsWith(h + '/') || dir === '/tmp' || dir.startsWith('/tmp/');
+  }
+  writeFile(abs, content) {
+    const [pd, name] = this.parent(abs); const pn = this.get(pd);
+    if (!pn || pn.type !== 'dir' || !this.canWrite(pd)) return false;
+    const ex = pn.children[name];
+    if (ex && ex.type === 'dir') return false;
+    if (ex) { ex.content = content; ex.mtime = Date.now(); }
+    else pn.children[name] = { type: 'file', owner: this.user, content, mtime: Date.now(), mode: this.user === 'root' ? 0o644 : 0o664 };
+    return true;
+  }
+  clone(n) {
+    if (n.type === 'file') return { type: 'file', owner: this.user, content: n.content, mtime: Date.now(), mode: n.mode };
+    const c = {}; for (const k in n.children) c[k] = this.clone(n.children[k]);
+    return { type: 'dir', owner: this.user, children: c, mtime: Date.now() };
+  }
+  readFile(cmd, p) {
+    const abs = this.abs(p); const n = this.get(abs);
+    if (!n) return { err: E(`${cmd}: ${p}: No such file or directory`) };
+    if (n.type === 'dir') return { err: E(`${cmd}: ${p}: Is a directory`) };
+    if (!this.canRead(abs)) return { err: E(`${cmd}: ${p}: Permission denied`) };
+    return { lines: contentLines(n.content), abs };
+  }
+
+  /* ---- entry point ---- */
+  run(line, noHist) {
+    if (line.trim() && !noHist) this.hist.push(line);
+    const toks = tokenize(line);
+    const groups = []; let cur = [], op = null;
+    for (const t of toks) {
+      if (t.op === ';' || t.op === '&&') { groups.push({ toks: cur, op }); op = t.op; cur = []; }
+      else cur.push(t);
+    }
+    groups.push({ toks: cur, op });
+    const out = { lines: [] };
+    let lastFail = false;
+    for (const g of groups) {
+      if (!g.toks.length) continue;
+      if (g.op === '&&' && lastFail) break;
+      const r = this.runSimple(g.toks);
+      out.lines.push(...r.lines);
+      if (r.action) { out.action = r.action; out.data = r.data; }
+      if (r.action === 'clear') out.lines = [];
+      if (r.action === 'script') break;
+      if (r.pending) { out.pending = r.pending; break; }
+      lastFail = r.lines.some(l => l.some(s => s[1] === 'err'));
+    }
+    return out;
+  }
+  norm(r) {
+    if (!r) return { lines: [] };
+    if (Array.isArray(r)) return { lines: r };
+    if (!r.lines) r.lines = [];
+    if (r.pending) { const orig = r.pending.resolve; r.pending.resolve = pw => this.norm(orig(pw)); }
+    return r;
+  }
+  runSimple(toks) {
+    const ri = toks.findIndex(t => t.op === '>' || t.op === '>>');
+    let redirect = null;
+    if (ri >= 0) {
+      const target = toks[ri + 1];
+      if (!target || target.op) return { lines: E("bash: syntax error near unexpected token `newline'") };
+      redirect = { file: target.v, append: toks[ri].op === '>>' };
+      toks = toks.slice(0, ri);
+    }
+    const cmd = toks[0] ? toks[0].v : '';
+    let args = [];
+    for (const t of toks.slice(1)) {
+      if (t.g && cmd !== 'find' && cmd !== 'locate') args.push(...this.expand(t.v)); else args.push(t.v);
+    }
+    let r = this.norm(this.dispatch(cmd, args));
+    if (redirect && !r.pending) {
+      const errs = r.lines.filter(l => l.some(s => s[1] === 'err'));
+      const text = r.lines.filter(l => !l.some(s => s[1] === 'err')).map(l => l.map(s => s[0]).join('')).join('\n');
+      const abs = this.abs(redirect.file); const ex = this.get(abs);
+      const content = (redirect.append && ex && ex.type === 'file' ? ex.content : '') + (text ? text + '\n' : '');
+      if (!this.writeFile(abs, content)) errs.push(...E(`bash: ${redirect.file}: Permission denied or not a valid file`));
+      r = { lines: errs, action: r.action, data: r.data };
+    }
+    return r;
+  }
+  expand(v) {
+    const i = v.lastIndexOf('/');
+    const dirPart = i >= 0 ? v.slice(0, i + 1) : '';
+    const dabs = this.abs(dirPart || '.'); const dn = this.get(dabs);
+    if (!dn || dn.type !== 'dir') return [v];
+    const re = globRe(v.slice(i + 1));
+    const m = Object.keys(dn.children).filter(n => !n.startsWith('.') && re.test(n)).sort();
+    return m.length ? m.map(n => dirPart + n) : [v];
+  }
+  runAs(args) { return this.runSimple(args.map(v => ({ v, g: false }))); }
+
+  dispatch(cmd, a) {
+    switch (cmd) {
+      case 'pwd': return [L(this.cwd)];
+      case 'whoami': return [L(this.user)];
+      case 'echo': return [L(a.join(' '))];
+      case 'date': return [L(new Date().toString().replace(/ GMT.*/, ''))];
+      case 'clear': return { action: 'clear' };
+      case 'history': return this.hist.map((h, i) => L(String(i + 1).padStart(5) + '  ' + h));
+      case 'help': return this.help();
+      case 'cd': return this.cd(a);
+      case 'ls': return this.ls(a);
+      case 'touch': return this.touch(a);
+      case 'mkdir': return this.mkdir(a);
+      case 'cat': return this.cat(a);
+      case 'cp': return this.cpmv('cp', a);
+      case 'mv': return this.cpmv('mv', a);
+      case 'rm': return this.rm(a);
+      case 'rmdir': return this.rmdir(a);
+      case 'nano': return this.nano(a);
+      case 'head': case 'tail': return this.headTail(cmd, a);
+      case 'less': case 'more': return this.pager(cmd, a);
+      case 'grep': return this.grep(a);
+      case 'find': return this.find(a);
+      case 'locate': return this.locate(a);
+      case 'man': return this.man(a);
+      case 'tree': return this.tree(a);
+      case 'su': return this.su(a);
+      case 'sudo': return this.sudo(a);
+      case 'exit': case 'logout': return this.exit();
+      case 'shutdown': case 'poweroff': case 'reboot': return this.shutdown(cmd, a);
+      case 'chmod': return this.chmod(a);
+      case 'gedit': return [L('gedit is a graphical editor: it opens in its own window on the Ubuntu desktop.', 'muted'), L('In this browser practice terminal please use:  nano ' + (a[0] || 'script1.sh'), 'yellow')];
+      case 'vim': case 'vi': return [L('vim is not available in this simulator — use  nano ' + (a[0] || 'script1.sh'), 'yellow')];
+      case 'bash': case 'sh': return a.length ? this.execScript(a[0], true, a.slice(1)) : E(`${cmd}: an interactive sub-shell is not supported here — give a script, e.g. bash hello_world.sh`);
+      case 'seq': { const n = a.map(Number); const [st, en] = n.length > 1 ? [n[0], n[1]] : [1, n[0]]; const o = []; for (let i = st; i <= en && o.length < 1000; i++) o.push(L(String(i))); return o; }
+      case 'sleep': return [];
+      case 'true': return [];
+      default:
+        if (cmd.includes('/')) return this.execScript(cmd, false, a);
+        if (cmd.endsWith('.sh') && this.get(this.abs(cmd))) return [...E(`${cmd}: command not found`), L(`Tip: to run a script in this folder type  ./${cmd}`, 'yellow')];
+        if (/^[A-Za-z_]\w*=/.test(cmd)) return [];
+        return E(`${cmd}: command not found`);
+    }
+  }
+  help() {
+    return [L('Commands you can practise here:', 'yellow'),
+      L('  Lab 3   : nano  cat  chmod +x  ./script.sh  bash script.sh'),
+      L('  Scripts : #!/bin/bash  variables  echo  read  if/elif/else/fi  for/while/do/done  $(( ))'),
+      L('  Linux   : ls  cd  pwd  mkdir  touch  cp  mv  rm  rmdir  grep  head  tail  su  sudo  whoami  clear'),
+      L('Tips: Tab = auto-complete · ↑/↓ = previous commands · Ctrl+L = clear', 'muted'),
+      L('Passwords: this simulator accepts any password you type.', 'muted')];
+  }
+  cd(a) {
+    let p = a[0];
+    if (!p || p === '~') p = this.home();
+    if (p === '-') p = this.oldpwd;
+    const abs = this.abs(p); const n = this.get(abs);
+    if (!n) return E(`bash: cd: ${a[0]}: No such file or directory`);
+    if (n.type !== 'dir') return E(`bash: cd: ${a[0]}: Not a directory`);
+    if (!this.canRead(abs)) return E(`bash: cd: ${a[0]}: Permission denied`);
+    this.oldpwd = this.cwd; this.cwd = abs;
+    return a[0] === '-' ? [L(abs)] : [];
+  }
+  longLine(name, n) {
+    const isD = n.type === 'dir';
+    const links = isD ? 2 + Object.values(n.children).filter(c => c.type === 'dir').length : 1;
+    const size = isD ? 4096 : n.content.length;
+    const perm = isD ? 'drwxr-xr-x' : '-' + modeStr(n.mode ?? 0o644);
+    return [[`${perm} ${String(links).padStart(2)} ${n.owner.padEnd(7)} ${n.owner.padEnd(7)} ${String(size).padStart(5)} ${fmtDate(n.mtime)} `, ''], [name, nameCls(n)]];
+  }
+  ls(a) {
+    let flags = ''; const paths = [];
+    for (const x of a) { if (x.startsWith('-') && x.length > 1) flags += x.slice(1); else paths.push(x); }
+    const long = flags.includes('l'), all = flags.includes('a');
+    const bad = flags.replace(/[la1]/g, '');
+    if (bad) return E(`ls: invalid option -- '${bad[0]}' (try -l or -a)`);
+    if (!paths.length) paths.push('.');
+    const out = [], files = [], dirs = [];
+    for (const p of paths) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (!n) { out.push(...E(`ls: cannot access '${p}': No such file or directory`)); continue; }
+      if (n.type === 'dir') {
+        if (!this.canRead(abs)) { out.push(...E(`ls: cannot open directory '${p}': Permission denied`)); continue; }
+        dirs.push([p, abs, n]);
+      } else files.push([p, n]);
+    }
+    if (files.length) {
+      if (long) files.forEach(([p, n]) => out.push(this.longLine(p, n)));
+      else out.push(files.flatMap(([p, n], i) => [[p, nameCls(n)], ...(i < files.length - 1 ? [['  ', '']] : [])]));
+    }
+    const multi = dirs.length + files.length > 1;
+    dirs.forEach(([p, abs, n], di) => {
+      if (multi) { if (files.length || di) out.push(L('')); out.push(L(p + ':')); }
+      let ents = Object.keys(n.children).sort((x, y) => x.replace(/^\./, '').localeCompare(y.replace(/^\./, ''))).filter(k => all || !k.startsWith('.')).map(k => [k, n.children[k]]);
+      if (all) ents = [['.', n], ['..', this.get(this.parent(abs)[0]) || n], ...ents];
+      if (long) { out.push(L('total ' + ents.length * 4)); ents.forEach(([k, c]) => out.push(this.longLine(k, c))); }
+      else if (ents.length) out.push(ents.flatMap(([k, c], i) => [[k, nameCls(c)], ...(i < ents.length - 1 ? [['  ', '']] : [])]));
+    });
+    return out;
+  }
+  touch(a) {
+    if (!a.length) return E('touch: missing file operand');
+    const out = [];
+    for (const p of a) {
+      const abs = this.abs(p); const [pd, name] = this.parent(abs); const pn = this.get(pd);
+      if (!pn || pn.type !== 'dir') { out.push(...E(`touch: cannot touch '${p}': No such file or directory`)); continue; }
+      if (!this.canWrite(pd)) { out.push(...E(`touch: cannot touch '${p}': Permission denied`)); continue; }
+      if (pn.children[name]) pn.children[name].mtime = Date.now();
+      else pn.children[name] = { type: 'file', owner: this.user, content: '', mtime: Date.now(), mode: this.user === 'root' ? 0o644 : 0o664 };
+    }
+    return out;
+  }
+  mkdir(a) {
+    const parents = a.includes('-p'); const ps = a.filter(x => !x.startsWith('-'));
+    if (!ps.length) return E('mkdir: missing operand');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p);
+      if (parents) {
+        let cur = '/';
+        for (const seg of abs.split('/').slice(1)) {
+          const n = this.get(cur); const nx = joinP(cur, seg);
+          if (!n.children[seg]) {
+            if (!this.canWrite(cur)) { out.push(...E(`mkdir: cannot create directory '${p}': Permission denied`)); break; }
+            n.children[seg] = { type: 'dir', owner: this.user, children: {}, mtime: Date.now() };
+          } else if (n.children[seg].type !== 'dir') { out.push(...E(`mkdir: cannot create directory '${p}': Not a directory`)); break; }
+          cur = nx;
+        }
+        continue;
+      }
+      const [pd, name] = this.parent(abs); const pn = this.get(pd);
+      if (!pn || pn.type !== 'dir') { out.push(...E(`mkdir: cannot create directory '${p}': No such file or directory`)); continue; }
+      if (pn.children[name]) { out.push(...E(`mkdir: cannot create directory '${p}': File exists`)); continue; }
+      if (!this.canWrite(pd)) { out.push(...E(`mkdir: cannot create directory '${p}': Permission denied`)); continue; }
+      pn.children[name] = { type: 'dir', owner: this.user, children: {}, mtime: Date.now() };
+    }
+    return out;
+  }
+  cat(a) {
+    if (!a.length) return E('cat: please give a file name, e.g.  cat displayfile.txt');
+    const out = [];
+    for (const p of a) { const r = this.readFile('cat', p); if (r.err) out.push(...r.err); else r.lines.forEach(l => out.push(L(l))); }
+    return out;
+  }
+  cpmv(cmd, a) {
+    let rec = false; const ps = [];
+    for (const x of a) { if (x.startsWith('-') && x.length > 1) { if (/[rR]/.test(x)) rec = true; } else ps.push(x); }
+    if (!ps.length) return E(`${cmd}: missing file operand`);
+    if (ps.length < 2) return E(`${cmd}: missing destination file operand after '${ps[0]}'`);
+    const dst = ps.pop(); const dabs = this.abs(dst); const dn = this.get(dabs);
+    if (ps.length > 1 && (!dn || dn.type !== 'dir')) return E(`${cmd}: target '${dst}' is not a directory`);
+    const out = [];
+    for (const src of ps) {
+      const sabs = this.abs(src); const sn = this.get(sabs);
+      if (!sn || !this.canRead(sabs)) { out.push(...E(`${cmd}: cannot stat '${src}': ${sn ? 'Permission denied' : 'No such file or directory'}`)); continue; }
+      if (cmd === 'cp' && sn.type === 'dir' && !rec) { out.push(...E(`cp: -r not specified; omitting directory '${src}'`)); continue; }
+      const target = dn && dn.type === 'dir' ? joinP(dabs, baseName(sabs)) : dabs;
+      if (target === sabs) { out.push(...E(`${cmd}: '${src}' and '${dst}' are the same file`)); continue; }
+      if (target.startsWith(sabs + '/')) { out.push(...E(`${cmd}: cannot ${cmd === 'cp' ? 'copy' : 'move'} '${src}' to a subdirectory of itself`)); continue; }
+      const [pd, name] = this.parent(target); const pn = this.get(pd);
+      if (!pn || pn.type !== 'dir') { out.push(...E(`${cmd}: cannot create '${dst}': No such file or directory`)); continue; }
+      if (!this.canWrite(pd)) { out.push(...E(`${cmd}: cannot create '${dst}': Permission denied`)); continue; }
+      if (pn.children[name] && pn.children[name].type === 'dir' && sn.type === 'file') { out.push(...E(`${cmd}: cannot overwrite directory '${dst}'`)); continue; }
+      if (cmd === 'cp') pn.children[name] = this.clone(sn);
+      else {
+        const [spd, sname] = this.parent(sabs);
+        if (!this.canWrite(spd)) { out.push(...E(`mv: cannot move '${src}': Permission denied`)); continue; }
+        delete this.get(spd).children[sname];
+        sn.mtime = Date.now(); pn.children[name] = sn;
+      }
+    }
+    return out;
+  }
+  rm(a) {
+    let rec = false, force = false; const ps = [];
+    for (const x of a) { if (x.startsWith('-') && x.length > 1) { if (/[rR]/.test(x)) rec = true; if (x.includes('f')) force = true; } else ps.push(x); }
+    if (!ps.length) return E('rm: missing operand');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (abs === '/') { out.push(...E("rm: it is dangerous to operate recursively on '/' — refused!")); continue; }
+      if (!n) { if (!force) out.push(...E(`rm: cannot remove '${p}': No such file or directory`)); continue; }
+      if (n.type === 'dir' && !rec) { out.push(...E(`rm: cannot remove '${p}': Is a directory`)); continue; }
+      const [pd, name] = this.parent(abs);
+      if (!this.canWrite(pd)) { out.push(...E(`rm: cannot remove '${p}': Permission denied`)); continue; }
+      delete this.get(pd).children[name];
+    }
+    return out;
+  }
+  rmdir(a) {
+    const ps = a.filter(x => !x.startsWith('-'));
+    if (!ps.length) return E('rmdir: missing operand');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (!n) { out.push(...E(`rmdir: failed to remove '${p}': No such file or directory`)); continue; }
+      if (n.type !== 'dir') { out.push(...E(`rmdir: failed to remove '${p}': Not a directory`)); continue; }
+      if (Object.keys(n.children).length) { out.push(...E(`rmdir: failed to remove '${p}': Directory not empty`)); continue; }
+      const [pd, name] = this.parent(abs);
+      if (!this.canWrite(pd)) { out.push(...E(`rmdir: failed to remove '${p}': Permission denied`)); continue; }
+      delete this.get(pd).children[name];
+    }
+    return out;
+  }
+  nano(a) {
+    const p = a.find(x => !x.startsWith('-'));
+    if (!p) return E('nano: please give a file name, e.g.  nano fileopen.txt');
+    const abs = this.abs(p); const n = this.get(abs);
+    if (n && n.type === 'dir') return E(`nano: ${p}: Is a directory`);
+    if (n && !this.canRead(abs)) return E(`nano: ${p}: Permission denied`);
+    const [pd] = this.parent(abs); const pn = this.get(pd);
+    return { action: 'nano', data: { abs, name: p, content: n ? n.content : '', writable: !!pn && pn.type === 'dir' && this.canWrite(pd), isNew: !n } };
+  }
+  headTail(cmd, a) {
+    let n = 10; const files = [];
+    for (let i = 0; i < a.length; i++) {
+      const x = a[i];
+      if (x === '-n') n = parseInt(a[++i], 10);
+      else if (/^-n\d+$/.test(x)) n = parseInt(x.slice(2), 10);
+      else if (/^-\d+$/.test(x)) n = parseInt(x.slice(1), 10);
+      else if (x === '-f') continue;
+      else files.push(x);
+    }
+    if (isNaN(n)) return E(`${cmd}: invalid number of lines`);
+    if (!files.length) return E(`${cmd}: please give a file, e.g.  ${cmd} -n 3 /etc/passwd`);
+    const out = [];
+    files.forEach((f, i) => {
+      const r = this.readFile(cmd, f);
+      if (r.err) { out.push(...r.err); return; }
+      if (files.length > 1) { if (i) out.push(L('')); out.push(L(`==> ${f} <==`, 'yellow')); }
+      (cmd === 'head' ? r.lines.slice(0, n) : r.lines.slice(Math.max(0, r.lines.length - n))).forEach(l => out.push(L(l)));
+    });
+    return out;
+  }
+  pager(cmd, a) {
+    const p = a.find(x => !x.startsWith('-'));
+    if (!p) return E(`Missing filename ("${cmd} --help" for help)`);
+    const r = this.readFile(cmd, p);
+    if (r.err) return r.err;
+    const out = r.lines.map(l => L(l));
+    if (cmd === 'less') out.push(L('(END)  ← in a real terminal press q to quit', 'inv'));
+    return out;
+  }
+  hlSegs(line, re) {
+    if (!re) return [[line, '']];
+    const segs = []; let last = 0; re.lastIndex = 0; let m;
+    while ((m = re.exec(line)) !== null) {
+      if (!m[0].length) { re.lastIndex++; continue; }
+      if (m.index > last) segs.push([line.slice(last, m.index), '']);
+      segs.push([m[0], 'hl']); last = m.index + m[0].length;
+    }
+    if (last < line.length) segs.push([line.slice(last), '']);
+    return segs.length ? segs : [['', '']];
+  }
+  grep(a) {
+    let ci = false, num = false, cnt = false, inv = false; const rest = [];
+    for (const x of a) {
+      if (x.startsWith('-') && x.length > 1 && !rest.length) { for (const ch of x.slice(1)) { if (ch === 'i') ci = true; else if (ch === 'n') num = true; else if (ch === 'c') cnt = true; else if (ch === 'v') inv = true; } }
+      else rest.push(x);
+    }
+    const pat = rest.shift();
+    if (pat === undefined) return E('Usage: grep [-i -n -c -v] PATTERN FILE...');
+    if (!rest.length) return E(`grep: please give a file to search, e.g.  grep ${pat} /etc/passwd`);
+    const re = new RegExp(escRe(pat), ci ? 'gi' : 'g');
+    const multi = rest.length > 1; const out = [];
+    for (const f of rest) {
+      const r = this.readFile('grep', f);
+      if (r.err) { out.push(...r.err); continue; }
+      let c = 0;
+      r.lines.forEach((ln, idx) => {
+        re.lastIndex = 0; const hit = re.test(ln);
+        if (hit !== inv) {
+          c++;
+          if (!cnt) {
+            const seg = [];
+            if (multi) seg.push([f + ':', 'purple']);
+            if (num) seg.push([(idx + 1) + ':', 'green']);
+            seg.push(...this.hlSegs(ln, inv ? null : re));
+            out.push(seg);
+          }
+        }
+      });
+      if (cnt) out.push(L((multi ? f + ':' : '') + c));
+    }
+    return out;
+  }
+  find(a) {
+    let start = '.', name = null, type = null, ci = false, i = 0;
+    if (a[0] && !a[0].startsWith('-')) { start = a[0]; i = 1; }
+    for (; i < a.length; i++) {
+      if (a[i] === '-name') name = a[++i];
+      else if (a[i] === '-iname') { name = a[++i]; ci = true; }
+      else if (a[i] === '-type') type = a[++i];
+      else return E(`find: unknown predicate '${a[i]}'`);
+    }
+    const abs = this.abs(start); const n = this.get(abs);
+    if (!n) return E(`find: '${start}': No such file or directory`);
+    const re = name ? globRe(name, ci) : null; const out = [];
+    const walk = (node, disp, nm, ab) => {
+      const okT = !type || (type === 'd' && node.type === 'dir') || (type === 'f' && node.type === 'file');
+      if (okT && (!re || re.test(nm))) out.push(L(disp, node.type === 'dir' ? 'dir' : ''));
+      if (node.type !== 'dir') return;
+      if (!this.canRead(ab)) { out.push(...E(`find: '${disp}': Permission denied`)); return; }
+      Object.keys(node.children).sort().forEach(k => walk(node.children[k], disp === '/' ? '/' + k : disp.replace(/\/$/, '') + '/' + k, k, joinP(ab, k)));
+    };
+    walk(n, start, baseName(abs), abs);
+    return out;
+  }
+  locate(a) {
+    const term = a.find(x => !x.startsWith('-'));
+    if (!term) return E('locate: no pattern to search for specified');
+    const out = [];
+    const walk = (node, ab) => {
+      if (ab !== '/' && ab.includes(term)) out.push(L(ab));
+      if (node.type === 'dir') Object.keys(node.children).sort().forEach(k => walk(node.children[k], joinP(ab, k)));
+    };
+    walk(this.fs, '/');
+    return out;
+  }
+  man(a) {
+    const p = a[0];
+    if (!p) return [L('What manual page do you want?'), L("For example, try 'man man'.")];
+    const m = MAN[p];
+    if (!m) return E(`No manual entry for ${p}`);
+    const H = (p.toUpperCase() + '(1)');
+    const out = [L(H.padEnd(22) + 'User Commands'.padEnd(22) + H, 'bold'), L(''), L('NAME', 'bold'), L('       ' + m[0]), L(''), L('SYNOPSIS', 'bold'), L('       ' + m[1]), L(''), L('DESCRIPTION', 'bold')];
+    m[2].forEach(x => out.push(L('       ' + x)));
+    out.push(L(''), L(' Manual page ' + p + '(1) line 1 (press q to quit)', 'inv'));
+    return out;
+  }
+  tree(a) {
+    const p = a[0] || '.'; const abs = this.abs(p); const n = this.get(abs);
+    if (!n) return E(`${p} [error opening dir]`);
+    if (n.type !== 'dir') return [L(p)];
+    const out = [L(p, 'dir')]; let dc = 0, fc = 0;
+    const walk = (node, prefix, ab) => {
+      const ks = Object.keys(node.children).filter(k => !k.startsWith('.')).sort();
+      ks.forEach((k, i) => {
+        const last = i === ks.length - 1; const c = node.children[k];
+        out.push([[prefix + (last ? '└── ' : '├── '), 'muted'], [k, c.type === 'dir' ? 'dir' : '']]);
+        if (c.type === 'dir') { dc++; if (this.canRead(joinP(ab, k))) walk(c, prefix + (last ? '    ' : '│   '), joinP(ab, k)); }
+        else fc++;
+      });
+    };
+    walk(n, '', abs);
+    out.push(L(''), L(`${dc} directories, ${fc} files`));
+    return out;
+  }
+  su(a) {
+    let login = false, target = 'root';
+    for (const x of a) { if (x === '-' || x === '-l' || x === '--login') login = true; else target = x; }
+    if (!USERS[target]) return E(`su: user ${target} does not exist`);
+    const go = () => {
+      this.stack.push({ user: this.user, cwd: this.cwd });
+      this.user = target;
+      if (login) { this.oldpwd = this.cwd; this.cwd = this.home(target); }
+      return [];
+    };
+    if (this.user === 'root') return go();
+    return { pending: { prompt: 'Password: ', resolve: pw => pw ? go() : E('su: Authentication failure') } };
+  }
+  sudo(a) {
+    if (!a.length) return E('usage: sudo -i  |  sudo COMMAND');
+    const go = () => {
+      if (a[0] === '-i' || (a[0] === 'su' && (a.length === 1 || a[1] === '-'))) {
+        this.stack.push({ user: this.user, cwd: this.cwd }); this.user = 'root'; this.oldpwd = this.cwd; this.cwd = '/root'; return [];
+      }
+      const prev = this.user; this.user = 'root';
+      const r = this.runAs(a);
+      if (this.user === 'root') this.user = prev;
+      return r;
+    };
+    if (this.user === 'root' || this.sudoOk) return go();
+    return { pending: { prompt: `[sudo] password for ${this.user}: `, resolve: pw => { if (!pw) return E('sudo: 1 incorrect password attempt'); this.sudoOk = true; return go(); } } };
+  }
+  chmod(a) {
+    const ps = a.slice(); const spec = ps.shift(); 
+    if (!spec || !ps.length) return E('chmod: missing operand — e.g.  chmod +x script1.sh');
+    const out = [];
+    for (const p of ps) {
+      const abs = this.abs(p); const n = this.get(abs);
+      if (!n) { out.push(...E(`chmod: cannot access '${p}': No such file or directory`)); continue; }
+      if (this.user !== 'root' && n.owner !== this.user) { out.push(...E(`chmod: changing permissions of '${p}': Operation not permitted`)); continue; }
+      let m = n.mode ?? (n.type === 'dir' ? 0o755 : 0o644);
+      if (/^[0-7]{3,4}$/.test(spec)) m = parseInt(spec, 8) & 0o777;
+      else {
+        let ok = true;
+        for (const part of spec.split(',')) {
+          const mm = /^([ugoa]*)([+\-=])([rwx]*)$/.exec(part);
+          if (!mm) { ok = false; break; }
+          const who = mm[1] || 'a'; let bits = 0;
+          for (const ch of mm[3]) bits |= ch === 'r' ? 4 : ch === 'w' ? 2 : 1;
+          let mask = 0;
+          if (who.includes('u') || who.includes('a')) mask |= bits << 6;
+          if (who.includes('g') || who.includes('a')) mask |= bits << 3;
+          if (who.includes('o') || who.includes('a')) mask |= bits;
+          if (mm[2] === '+') m |= mask; else if (mm[2] === '-') m &= ~mask;
+          else { let clr = 0; if (who.includes('u') || who.includes('a')) clr |= 0o700; if (who.includes('g') || who.includes('a')) clr |= 0o070; if (who.includes('o') || who.includes('a')) clr |= 0o007; m = (m & ~clr) | mask; }
+        }
+        if (!ok) { out.push(...E(`chmod: invalid mode: '${spec}'`)); break; }
+      }
+      n.mode = m;
+    }
+    return out;
+  }
+  execScript(path, viaBash, args) {
+    const abs = this.abs(path); const n = this.get(abs);
+    if (!n) return E(`bash: ${path}: No such file or directory`);
+    if (n.type === 'dir') return E(`bash: ${path}: Is a directory`);
+    if (!this.canRead(abs)) return E(`bash: ${path}: Permission denied`);
+    if (!viaBash && !((n.mode ?? 0) & 0o100)) return E(`bash: ${path}: Permission denied`);
+    return { action: 'script', data: { gen: runScript(this, n.content, path, args || []), name: path, abs, content: n.content } };
+  }
+  exit() {
+    if (!this.stack.length) return [L('This is the first login shell — nothing to exit back to. (A real terminal window would close.)', 'muted')];
+    const s = this.stack.pop(); this.user = s.user; this.cwd = s.cwd;
+    return [L('logout', 'muted')];
+  }
+  shutdown(cmd, a) {
+    if (this.user !== 'root') return E(`${cmd}: Permission denied — only root can do this. Switch first with  su -  or  sudo -i`);
+    if (a.includes('-c')) return [L('No scheduled shutdown to cancel.', 'muted')];
+    const reboot = cmd === 'reboot' || a.includes('-r');
+    return { lines: [L(`Broadcast message from root@${HOST} on pts/0 (${new Date().toString().slice(0, 24)}):`, 'yellow'), L(''), L(`The system will ${reboot ? 'reboot' : 'power off'} now!`, 'yellow')], action: 'shutdown', data: { reboot } };
+  }
+}
+
+
+/* ===== Mini bash script interpreter (subset used in Lab 3) ===== */
+class ScriptError extends Error { constructor(ln, msg) { super(msg); this.ln = ln; } }
+
+function stripComment(line) {
+  let q = null;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) { if (ch === q) q = null; else if (ch === '\\' && q === '"') i++; continue; }
+    if (ch === '"' || ch === "'") { q = ch; continue; }
+    if (ch === '\\') { i++; continue; }
+    if (ch === '#' && (i === 0 || /\s/.test(line[i - 1])) && line[i - 1] !== '$') return line.slice(0, i);
+  }
+  return line;
+}
+function splitSemis(line) {
+  const out = []; let cur = '', q = null, depth = 0;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) { cur += ch; if (ch === q) q = null; continue; }
+    if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
+    if (ch === '(') depth++; if (ch === ')') depth--;
+    if (ch === ';' && depth <= 0) { out.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+function splitStatements(content) {
+  const st = [];
+  content.split('\n').forEach((raw, idx) => {
+    const s = stripComment(raw).trim();
+    if (!s) return;
+    for (let part of splitSemis(s)) {
+      part = part.trim();
+      if (!part) continue;
+      const m = /^(then|do|else)\s+(.+)$/.exec(part);
+      if (m) { st.push({ t: m[1], ln: idx + 1 }); st.push({ t: m[2], ln: idx + 1 }); }
+      else st.push({ t: part, ln: idx + 1 });
+    }
+  });
+  return st;
+}
+function firstWord(t) { return t.split(/\s+/)[0]; }
+function parseBlock(st, i, ends, lastLn) {
+  const body = [];
+  while (i < st.length) {
+    const { t, ln } = st[i]; const w = firstWord(t);
+    if (ends.includes(w)) return { body, i, end: w };
+    if (w === 'if') {
+      const node = { type: 'if', branches: [], els: null, ln };
+      let cond = t.slice(2).trim(); let cl = ln; i++;
+      if (!cond) throw new ScriptError(ln, "syntax error near unexpected token `newline'");
+      if (!st[i] || firstWord(st[i].t) !== 'then') throw new ScriptError(st[i] ? st[i].ln : lastLn + 1, st[i] ? `syntax error near unexpected token \`${firstWord(st[i].t)}' (expected 'then')` : 'syntax error: unexpected end of file');
+      i++;
+      for (;;) {
+        const r = parseBlock(st, i, ['elif', 'else', 'fi'], lastLn);
+        node.branches.push({ cond, ln: cl, body: r.body });
+        if (!r.end) throw new ScriptError(lastLn + 1, "syntax error: unexpected end of file  (an 'if' is missing its 'fi')");
+        if (r.end === 'elif') {
+          cond = st[r.i].t.slice(4).trim(); cl = st[r.i].ln; i = r.i + 1;
+          if (!st[i] || firstWord(st[i].t) !== 'then') throw new ScriptError(st[i] ? st[i].ln : lastLn + 1, "syntax error: 'elif' must be followed by 'then'");
+          i++; continue;
+        }
+        if (r.end === 'else') {
+          const r2 = parseBlock(st, r.i + 1, ['fi'], lastLn);
+          if (!r2.end) throw new ScriptError(lastLn + 1, "syntax error: unexpected end of file  (an 'if' is missing its 'fi')");
+          node.els = r2.body; i = r2.i + 1; break;
+        }
+        i = r.i + 1; break;
+      }
+      body.push(node); continue;
+    }
+    if (w === 'for' || w === 'while' || w === 'until') {
+      let node;
+      if (w === 'for') {
+        const m = /^for\s+([A-Za-z_]\w*)\s+in\s+(.*)$/.exec(t) || /^for\s+([A-Za-z_]\w*)\s*$/.exec(t);
+        const c = /^for\s*\(\((.*);(.*);(.*)\)\)\s*$/.exec(t);
+        if (c) node = { type: 'cfor', init: c[1], cond: c[2], step: c[3], ln };
+        else if (m) node = { type: 'for', v: m[1], list: m[2] ?? '"$@"', ln };
+        else throw new ScriptError(ln, "syntax error in 'for' — use:  for i in {1..5}");
+      } else node = { type: w, cond: t.slice(w.length).trim(), ln };
+      i++;
+      if (!st[i] || firstWord(st[i].t) !== 'do') throw new ScriptError(st[i] ? st[i].ln : lastLn + 1, st[i] ? `syntax error near unexpected token \`${firstWord(st[i].t)}' (expected 'do')` : 'syntax error: unexpected end of file');
+      const r = parseBlock(st, i + 1, ['done'], lastLn);
+      if (!r.end) throw new ScriptError(lastLn + 1, `syntax error: unexpected end of file  (a '${w}' loop is missing its 'done')`);
+      node.body = r.body; i = r.i + 1; body.push(node); continue;
+    }
+    if (['then', 'do', 'fi', 'done', 'else', 'elif'].includes(w)) throw new ScriptError(ln, `syntax error near unexpected token \`${w}'`);
+    body.push({ type: 'cmd', t, ln }); i++;
+  }
+  return { body, i, end: undefined };
+}
+
+function arith(expr, env) {
+  const js = expr.replace(/\$?\{?([A-Za-z_]\w*)\}?/g, (_, n) => { const v = parseInt(env[n], 10); return isNaN(v) ? 0 : v; });
+  if (!/^[\d\s+\-*/%()<>=!&|]*$/.test(js)) throw new Error('arith');
+  if (!js.trim()) return 0;
+  // eslint-disable-next-line no-new-func
+  let v = Function('"use strict";return (' + js.replace(/\//g, '/') + ')')();
+  if (typeof v === 'boolean') v = v ? 1 : 0;
+  return Math.trunc(v);
+}
+function arithStmt(expr, env) {
+  expr = expr.trim();
+  let m;
+  if ((m = /^([A-Za-z_]\w*)\s*(\+\+|--)$/.exec(expr)) || (m = /^(\+\+|--)\s*([A-Za-z_]\w*)$/.exec(expr))) {
+    const name = /^[A-Za-z_]/.test(m[1]) ? m[1] : m[2]; const op = /^[A-Za-z_]/.test(m[1]) ? m[2] : m[1];
+    env[name] = String((parseInt(env[name], 10) || 0) + (op === '++' ? 1 : -1)); return 1;
+  }
+  if ((m = /^([A-Za-z_]\w*)\s*([+\-*/%]?)=\s*(.+)$/.exec(expr)) && !/^[=]/.test(m[3])) {
+    const rhs = arith(m[3], env); const cur = parseInt(env[m[1]], 10) || 0;
+    const v = m[2] === '+' ? cur + rhs : m[2] === '-' ? cur - rhs : m[2] === '*' ? cur * rhs : m[2] === '/' ? Math.trunc(cur / rhs) : m[2] === '%' ? cur % rhs : rhs;
+    env[m[1]] = String(v); return v;
+  }
+  return arith(expr, env);
+}
+
+function expandVars(s, env, sh) {
+  let out = '', q = null;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (q === "'") { out += ch; if (ch === "'") q = null; continue; }
+    if (ch === "'" && !q) { q = "'"; out += ch; continue; }
+    if (ch === '"') { q = q ? null : '"'; out += ch; continue; }
+    if (ch === '\\' && i + 1 < s.length) { out += ch + s[i + 1]; i++; continue; }
+    if (ch === '$') {
+      if (s.startsWith('$((', i)) {
+        let depth = 0, j = i + 1;
+        for (; j < s.length; j++) { if (s[j] === '(') depth++; else if (s[j] === ')') { depth--; if (depth === 0) break; } }
+        const inner = s.slice(i + 3, j - 1);
+        try { out += String(arith(inner, env)); } catch (e) { out += '0'; }
+        i = j; continue;
+      }
+      if (s[i + 1] === '(') {
+        let depth = 0, j = i + 1;
+        for (; j < s.length; j++) { if (s[j] === '(') depth++; else if (s[j] === ')') { depth--; if (depth === 0) break; } }
+        const inner = expandVars(s.slice(i + 2, j), env, sh);
+        const r = sh.run(inner, true);
+        out += r.lines.filter(l => !l.some(x => x[1] === 'err')).map(l => l.map(x => x[0]).join('')).join(' ');
+        i = j; continue;
+      }
+      if (s[i + 1] === '{') { const j = s.indexOf('}', i); const name = s.slice(i + 2, j); out += env[name] ?? ''; i = j; continue; }
+      const m = /^([A-Za-z_]\w*|[0-9?#@])/.exec(s.slice(i + 1));
+      if (m) { out += env[m[1]] ?? ''; i += m[1].length; continue; }
+    }
+    out += ch;
+  }
+  return out;
+}
+function words(s) { return tokenize(s).filter(t => !t.op).map(t => t.v); }
+function braceExpand(w) {
+  let m = /^(.*)\{(-?\d+)\.\.(-?\d+)\}(.*)$/.exec(w);
+  if (m) { const a = +m[2], b = +m[3], st = a <= b ? 1 : -1, o = []; for (let i = a; st > 0 ? i <= b : i >= b; i += st) { o.push(m[1] + i + m[4]); if (o.length > 10000) break; } return o; }
+  m = /^(.*)\{([a-zA-Z])\.\.([a-zA-Z])\}(.*)$/.exec(w);
+  if (m) { const a = m[2].charCodeAt(0), b = m[3].charCodeAt(0), st = a <= b ? 1 : -1, o = []; for (let i = a; st > 0 ? i <= b : i >= b; i += st) o.push(m[1] + String.fromCharCode(i) + m[4]); return o; }
+  m = /^(.*)\{([^{}]*,[^{}]*)\}(.*)$/.exec(w);
+  if (m) return m[2].split(',').map(x => m[1] + x + m[3]);
+  return [w];
+}
+
+function* runScript(sh, content, name, args) {
+  const env = { '0': name, '#': String(args.length), '@': args.join(' '), '?': '0' };
+  args.forEach((a, i) => env[String(i + 1)] = a);
+  const st = splitStatements(content);
+  const lastLn = content.replace(/\n+$/, '').split('\n').length;
+  const pre = (ln) => `${name}: line ${ln}: `;
+  let prog;
+  try { prog = parseBlock(st, 0, [], lastLn).body; }
+  catch (e) { if (e instanceof ScriptError) { yield { line: L(pre(e.ln) + e.message, 'err'), err: true }; return; } throw e; }
+  const savedCwd = sh.cwd;
+  let steps = 0;
+  const EXIT = {};
+  function* cond(c, ln) {
+    // returns boolean via generator return
+    const ex = expandVars(c, env, sh).trim();
+    let w = words(ex);
+    if (!w.length) return true;
+    if (w[0] === '!' ) { const r = yield* cond(c.replace(/^\s*!\s*/, ''), ln); return !r; }
+    if (w[0] === 'true' || w[0] === ':') return true;
+    if (w[0] === 'false') return false;
+    if (/^\(\(.*\)\)$/.test(ex)) { try { return arithStmt(ex.slice(2, -2), env) !== 0; } catch (e) { yield { line: L(pre(ln) + 'syntax error in arithmetic', 'err'), err: true }; return false; } }
+    let dbl = false;
+    if (w[0] === '[' || w[0] === 'test' || w[0] === '[[') {
+      dbl = w[0] === '[[';
+      if (w[0] !== 'test') {
+        const close = dbl ? ']]' : ']';
+        if (w[w.length - 1] !== close) { yield { line: L(pre(ln) + `${w[0]}: missing \`${close}'  (put a space before ${close})`, 'err'), err: true }; return false; }
+        w = w.slice(1, -1);
+      } else w = w.slice(1);
+      // split on logical ops
+      const groups = [[]], ops = [];
+      for (const x of w) { if (x === '-a' || x === '&&') { ops.push('&&'); groups.push([]); } else if (x === '-o' || x === '||') { ops.push('||'); groups.push([]); } else groups[groups.length - 1].push(x); }
+      let res = null;
+      for (let gi = 0; gi < groups.length; gi++) {
+        const g = groups[gi]; let neg = false; let t = g;
+        if (t[0] === '!') { neg = true; t = t.slice(1); }
+        let v;
+        if (t.length === 0) v = false;
+        else if (t.length === 1) v = t[0] !== '';
+        else if (t.length === 2) {
+          const [op, a] = t;
+          if (op === '-z') v = a === ''; else if (op === '-n') v = a !== '';
+          else if (['-f', '-d', '-e', '-x', '-r', '-w', '-s'].includes(op)) {
+            const n = sh.get(sh.abs(a));
+            v = op === '-e' ? !!n : op === '-f' ? !!n && n.type === 'file' : op === '-d' ? !!n && n.type === 'dir' : op === '-x' ? !!n && !!((n.mode ?? 0o755) & 0o111) : op === '-s' ? !!n && n.type === 'file' && n.content.length > 0 : !!n;
+          } else { yield { line: L(pre(ln) + `[: ${op}: unary operator expected`, 'err'), err: true }; v = false; }
+        } else if (t.length === 3) {
+          const [a, op, b] = t;
+          if (['-eq', '-ne', '-gt', '-ge', '-lt', '-le'].includes(op)) {
+            const bad = [a, b].find(x => !/^-?\d+$/.test(x));
+            if (bad !== undefined) { yield { line: L(pre(ln) + `[: ${bad === '' ? '""' : bad}: integer expression expected`, 'err'), err: true }; v = false; }
+            else { const x = +a, y = +b; v = op === '-eq' ? x === y : op === '-ne' ? x !== y : op === '-gt' ? x > y : op === '-ge' ? x >= y : op === '-lt' ? x < y : x <= y; }
+          } else if (op === '=' || op === '==') v = a === b;
+          else if (op === '!=') v = a !== b;
+          else if (op === '<') v = a < b; else if (op === '>') v = a > b;
+          else { yield { line: L(pre(ln) + `[: ${op}: binary operator expected`, 'err'), err: true }; v = false; }
+        } else { yield { line: L(pre(ln) + '[: too many arguments  (tip: put "$variables" in double quotes)', 'err'), err: true }; v = false; }
+        if (neg) v = !v;
+        res = res === null ? v : ops[gi - 1] === '&&' ? res && v : res || v;
+      }
+      return !!res;
+    }
+    // any other command: success = no error output
+    const r = yield* simple(c, ln, true);
+    return r;
+  }
+  function* simple(t, ln, asCond) {
+    if (++steps > 20000) { yield { line: L(pre(ln) + 'stopped: too many steps (infinite loop?)', 'err'), err: true }; throw EXIT; }
+    if (/^\(\(.*\)\)$/.test(t.trim())) { try { arithStmt(t.trim().slice(2, -2), env); } catch (e) { yield { line: L(pre(ln) + 'syntax error in arithmetic expression', 'err'), err: true }; } return true; }
+    const am = /^([A-Za-z_]\w*)=(.*)$/s.exec(t);
+    if (am) {
+      const val = expandVars(am[2], env, sh);
+      const ws = tokenize(val).filter(x => !x.op);
+      if (ws.length > 1) { yield { line: L(pre(ln) + `${ws[1].v}: command not found  (tip: put text with spaces in "double quotes")`, 'err'), err: true }; return false; }
+      env[am[1]] = ws.length ? ws[0].v : '';
+      return true;
+    }
+    const ex = expandVars(t, env, sh);
+    const w0 = words(ex);
+    if (!w0.length) return true;
+    const w = w0.flatMap(braceExpand);
+    const cmd = w[0];
+    if (/^[A-Za-z_]\w*$/.test(cmd) && w[1] === '=' ) { yield { line: L(pre(ln) + `${cmd}: command not found  (tip: no spaces around = in  name=value)`, 'err'), err: true }; return false; }
+    if (cmd === 'echo' || cmd === 'printf') {
+      let a = w.slice(1), nl = true, esc = cmd === 'printf';
+      if (cmd === 'echo') while (a[0] && /^-[neE]+$/.test(a[0])) { if (a[0].includes('n')) nl = false; if (a[0].includes('e')) esc = true; a = a.slice(1); }
+      let text;
+      if (cmd === 'printf') { const fmt = a[0] || ''; let k = 1; text = fmt.replace(/%[sd]/g, () => a[k++] ?? ''); nl = false; }
+      else text = a.join(' ');
+      if (esc) text = text.replace(/\\n/g, '\n').replace(/\\t/g, '    ');
+      const parts = text.split('\n');
+      if (!nl && parts[parts.length - 1] === '') parts.pop();
+      for (let pi = 0; pi < parts.length; pi++) yield { line: L(parts[pi]), keep: !nl && pi === parts.length - 1 };
+      return true;
+    }
+    if (cmd === 'read') {
+      let a = w.slice(1), prompt = '';
+      while (a[0] && a[0].startsWith('-')) { if (a[0] === '-p') { prompt = a[1] || ''; a = a.slice(2); } else a = a.slice(1); }
+      const vars = a.length ? a : ['REPLY'];
+      const v = yield { read: prompt };
+      const val = (v ?? '').trim();
+      const parts = val.split(/\s+/);
+      vars.forEach((n, i) => env[n] = i === vars.length - 1 ? parts.slice(i).join(' ') : (parts[i] || ''));
+      return true;
+    }
+    if (cmd === 'exit') throw EXIT;
+    if (cmd === 'clear') { yield { clear: true }; return true; }
+    if (cmd === 'let') { try { w.slice(1).forEach(x => arithStmt(x, env)); } catch (e) { yield { line: L(pre(ln) + 'let: syntax error', 'err'), err: true }; } return true; }
+    if (cmd === 'cd') { const r = sh.dispatch('cd', w.slice(1)); for (const l of (Array.isArray(r) ? r : [])) yield { line: [[pre(ln) + l.map(x => x[0]).join(''), 'err']], err: true }; return !(Array.isArray(r) && r.length); }
+    if (['nano', 'su', 'sudo', 'gedit', 'shutdown'].includes(cmd)) { yield { line: L(pre(ln) + `${cmd}: not supported inside scripts in this simulator`, 'err'), err: true }; return false; }
+    if (cmd.includes('/') || cmd === 'bash' || cmd === 'sh') { yield { line: L(pre(ln) + 'running another script from a script is not supported here', 'err'), err: true }; return false; }
+    const r = sh.run(w.map(x => /[\s"']/.test(x) ? JSON.stringify(x) : x).join(' '), true);
+    let ok = true;
+    for (const l of r.lines) {
+      const isErr = l.some(x => x[1] === 'err');
+      if (isErr) { ok = false; yield { line: [[pre(ln) + l.map(x => x[0]).join(''), 'err']], err: true }; }
+      else if (!asCond) yield { line: l };
+    }
+    return ok;
+  }
+  function* block(stmts) {
+    for (const s of stmts) {
+      if (s.type === 'cmd') { const ok = yield* simple(s.t, s.ln, false); env['?'] = ok ? '0' : '1'; }
+      else if (s.type === 'if') {
+        let done = false;
+        for (const b of s.branches) { if (yield* cond(b.cond, b.ln)) { yield* block(b.body); done = true; break; } }
+        if (!done && s.els) yield* block(s.els);
+      } else if (s.type === 'for') {
+        const list = words(expandVars(s.list, env, sh)).flatMap(braceExpand);
+        for (const it of list) { if (++steps > 20000) { yield { line: L(pre(s.ln) + 'stopped: loop ran too many times', 'err'), err: true }; throw EXIT; } env[s.v] = it; yield* block(s.body); }
+      } else if (s.type === 'cfor') {
+        try { arithStmt(s.init, env); } catch (e) {}
+        let n = 0;
+        while ((() => { try { return arith(s.cond, env) !== 0; } catch (e) { return false; } })()) {
+          if (++n > 10000) { yield { line: L(pre(s.ln) + 'stopped after 10000 loops — infinite loop?', 'err'), err: true }; throw EXIT; }
+          yield* block(s.body); try { arithStmt(s.step, env); } catch (e) { break; }
+        }
+      } else if (s.type === 'while' || s.type === 'until') {
+        let n = 0;
+        for (;;) {
+          let c = yield* cond(s.cond, s.ln); if (s.type === 'until') c = !c;
+          if (!c) break;
+          if (++n > 1000) { yield { line: L(pre(s.ln) + `stopped after 1000 loops — infinite loop? (does the ${s.type} condition ever change?)`, 'err'), err: true }; throw EXIT; }
+          yield* block(s.body);
+        }
+      }
+    }
+  }
+  try { yield* block(prog); }
+  catch (e) { if (e !== EXIT) { yield { line: L(pre(0) + 'internal simulator error: ' + e.message, 'err'), err: true }; } }
+  sh.cwd = savedCwd;
+}
+
+</script>
+<script>
+/* ================= Data ================= */
+const S_HELLO = '#!/bin/bash\necho "Hello, World!"';
+const S_VAR = '#!/bin/bash\ngreeting="Welcome to Bash Scripting!"\necho $greeting';
+const S_READ = '#!/bin/bash\necho "Enter your name:"\nread name\necho "Hello, $name! Welcome to Bash Scripting!"';
+const S_IF = '#!/bin/bash\necho "Enter a number:"\nread number\nif [ $number -eq 100 ]\nthen\n  echo "You entered 100!"\nelse\n  echo "You entered $number, which is not 100."\nfi';
+const S_FOR = '#!/bin/bash\nfor i in {1..5}\ndo\n  echo "Number $i"\ndone';
+
+const SCENES = [
+  { id: 'nano', part: 'Points to remember', ic: '📝', title: 'How to use the nano editor', banner: 'recipe', detail: true, steps: [
+    { nano: 'script1.sh', text: 'I learnt how to use nano editor.', n: { open: 'Open the terminal and type <code>nano script1.sh</code>. The file is created and ready to write in.', type: 'Type: <b>I learnt how to use nano editor.</b>' } },
+    { c: 'cat script1.sh', n: 'Use <code>cat</code> to display the content of the file: <code>cat script1.sh</code>' },
+  ]},
+  { id: 'rules', part: 'Points to remember', ic: '📜', title: 'How to handle and use shell scripts', banner: 'rules', steps: [
+    { nano: 'script1.sh', rule: [0, 2], ruleType: [1], text: '#!/bin/bash\necho "I learnt how to use nano editor."', n: { open: 'Rules 1 & 3: open the script with <b>nano</b> (or gedit). The name ends in <code>.sh</code>', type: 'Rule 2: line 1 is <code>#!/bin/bash</code>. It tells Linux to run this file with bash.' } },
+    { c: './script1.sh', rule: [3], n: 'Try to run it… <b>Permission denied!</b> A new file is not executable.' },
+    { c: 'ls -l script1.sh', rule: [3], n: '<code>-rw-rw-r--</code> means there is no <b>x</b> (execute) permission yet.' },
+    { c: 'chmod +x script1.sh', rule: [3], n: 'Rule 4, <b>very very important</b>: <code>chmod +x script1.sh</code>' },
+    { c: 'ls -l script1.sh', rule: [3], n: 'Now it is <code>-rwxrwxr-x</code>. The x’s are added and the name turns green.' },
+    { c: './script1.sh', rule: [4], n: 'Rule 5: run it with <code>./</code> at the start. <code>./</code> means “in this folder”.' },
+    { c: 'script1.sh', rule: [4], n: 'Without <code>./</code> bash cannot find it: <b>command not found</b>.' },
+  ]},
+  { id: 't1', part: 'Lab tasks', ic: '1️⃣', title: 'Task 1: Creating and running a Bash script', banner: 'task',
+    task: 'Bash (Bourne Again Shell) is the most common Linux shell. It is also a <b>scripting language</b> that automates repetitive tasks. In this task you create <b>hello_world.sh</b>, make it executable and run it.', steps: [
+    { c: 'cd ~', n: 'Step 2: go to your home directory with <code>cd ~</code>' },
+    { nano: 'hello_world.sh', text: S_HELLO, n: { open: 'Step 3: create the file: <code>nano hello_world.sh</code>', type: 'Step 4: write the script. <code>echo</code> prints text.' } },
+    { c: './hello_world.sh', n: 'Step 6: execute it with <code>./hello_world.sh</code>. <b>Permission denied</b>, because it has no execute permission.' },
+    { c: 'chmod +x hello_world.sh', n: 'Step 7: make it executable with <code>chmod +x hello_world.sh</code>' },
+    { c: './hello_world.sh', n: 'Try again. It displays <b>Hello, World!</b>' },
+  ]},
+  { id: 't2a', part: 'Lab tasks', ic: '2️⃣', title: 'Task 2.1: Using variables', banner: 'task', setup: S_HELLO,
+    task: 'A <b>variable</b> stores a value under a name. Create it with <b>name="value"</b> (no spaces around =) and use it with a <b>$</b> in front: <b>$name</b>.', steps: [
+    { nano: 'hello_world.sh', replace: true, text: S_VAR, n: { open: 'Open <code>hello_world.sh</code> in nano again.', type: 'Store the text in <code>greeting</code>, then print it with <code>echo $greeting</code>' } },
+    { c: './hello_world.sh', n: 'Run it. <code>echo $greeting</code> prints the value stored in the variable.' },
+  ]},
+  { id: 't2b', part: 'Lab tasks', ic: '⌨️', title: 'Task 2.2: Adding user input', banner: 'task', setup: S_VAR,
+    task: '<b>read</b> pauses the script, waits for the user to type something and press Enter, then saves the text in a variable.', steps: [
+    { nano: 'hello_world.sh', replace: true, text: S_READ, n: { open: 'Open the script again.', type: '<code>read name</code> waits for input and stores it in <code>$name</code>.' } },
+    { c: './hello_world.sh', inputs: ['Ali Ahmed'], n: 'Run it, type your name and press Enter. The script greets you.' },
+  ]},
+  { id: 't3a', part: 'Lab tasks', ic: '3️⃣', title: 'Task 3.1: Conditional statements (if)', banner: 'task', setup: S_READ,
+    task: '<b>if … then … else … fi</b> lets the script decide. <b>-eq</b> means “equal to” for numbers. Keep a <b>space</b> after <b>[</b> and before <b>]</b>.', steps: [
+    { nano: 'hello_world.sh', replace: true, text: S_IF, n: { open: 'Edit <code>hello_world.sh</code> to include an if statement.', type: '<code>if [ $number -eq 100 ]</code>, <code>then</code>, <code>else</code>, and close with <code>fi</code>' } },
+    { c: './hello_world.sh', inputs: ['100'], n: 'Input <b>100</b>: the condition is true, so the <code>then</code> part runs.' },
+    { c: './hello_world.sh', inputs: ['55'], n: 'Input <b>55</b>: the condition is false, so the <code>else</code> part runs.' },
+  ]},
+  { id: 't3b', part: 'Lab tasks', ic: '🔁', title: 'Task 3.2: Loops (for)', banner: 'task', setup: S_IF,
+    task: 'A <b>for loop</b> repeats commands. <b>{1..5}</b> expands to 1 2 3 4 5, and the lines between <b>do</b> and <b>done</b> run once for each number.', steps: [
+    { nano: 'hello_world.sh', replace: true, text: S_FOR, n: { open: 'Modify the script to add a for loop.', type: '<code>for i in {1..5}</code> … <code>do</code> … <code>done</code>' } },
+    { c: './hello_world.sh', n: 'Run it. The loop prints Number 1 to Number 5.' },
+  ]},
+  { id: 'ch', part: 'Lab tasks', ic: '🏆', title: 'Challenge: your own Bash script', banner: 'challenge', steps: [
+    { nano: 'challenge.sh', text: '#!/bin/bash\n# 1. store a value in a variable\n# 2. read input from the user\n# 3. make a decision with if\n# 4. repeat a task with a loop', n: { open: 'Create a <b>new</b> script, for example <code>nano challenge.sh</code>', type: 'Plan the 4 parts with <code>#</code> comments. Bash ignores comments.' } },
+    { c: 'chmod +x challenge.sh', n: 'Give it execute permission.' },
+    { c: './challenge.sh', n: 'It runs but prints nothing yet. Write the real code in the <b>practice terminal below ↓</b> and note any errors and how you fixed them.' },
+  ]},
+];
+
+const SNIPS = [
+  ['Task 1 – Hello World', S_HELLO], ['Task 2.1 – Variable', S_VAR], ['Task 2.2 – User input', S_READ], ['Task 3.1 – if statement', S_IF], ['Task 3.2 – for loop', S_FOR],
+];
+
+const SPEEDS = { slow: { type: 85, pause: 1800 }, normal: { type: 45, pause: 1150 }, fast: { type: 16, pause: 520 } };
+let speed = 'normal';
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1900); }
+
+function lineEl(line) {
+  const d = document.createElement('div'); d.className = 'ln';
+  for (const [t, c] of line) { const s = document.createElement('span'); if (c) s.className = c; s.textContent = t; d.appendChild(s); }
+  return d;
+}
+function promptFrag(info) {
+  const f = document.createDocumentFragment();
+  const u = document.createElement('span'); u.className = 'u' + (info.user === 'root' ? ' root' : ''); u.textContent = `${info.user}@${info.host}`;
+  const c = document.createElement('span'); c.textContent = ':';
+  const p = document.createElement('span'); p.className = 'pth'; p.textContent = info.path;
+  const s = document.createElement('span'); s.textContent = info.sym + ' ';
+  f.append(u, c, p, s); return f;
+}
+function hlBash(src) {
+  return src.split('\n').map(line => {
+    if (/^\s*#/.test(line)) return `<span class="sx-c">${esc(line)}</span>`;
+    return line.replace(/("[^"]*"?|'[^']*'?|\$\{?\w+\}?|\b(?:if|then|else|elif|fi|for|in|do|done|while|until)\b|\b(?:echo|read|printf)\b|[\[\]]|[^"'$\[\]\w]+|\w+)/g, tok => {
+      let c = '';
+      if (/^["']/.test(tok)) c = 'sx-s';
+      else if (/^\$/.test(tok)) c = 'sx-v';
+      else if (/^(if|then|else|elif|fi|for|in|do|done|while|until)$/.test(tok)) c = 'sx-k';
+      else if (/^(echo|read|printf)$/.test(tok)) c = 'sx-b';
+      else if (/^[\[\]]$/.test(tok)) c = 'sx-br';
+      return c ? `<span class="${c}">${esc(tok)}</span>` : esc(tok);
+    });
+  }).join('\n');
+}
+const FOOT_MAIN = [['^G', 'Help'], ['^O', 'Write Out'], ['^W', 'Where Is'], ['^K', 'Cut'], ['^T', 'Execute'], ['^C', 'Location'], ['^X', 'Exit'], ['^R', 'Read File'], ['^\\', 'Replace'], ['^U', 'Paste'], ['^J', 'Justify'], ['^/', 'Go To Line']];
+const FOOT_YN = [[' Y', 'Yes'], ['', ''], ['', ''], ['', ''], ['', ''], ['', ''], [' N', 'No'], ['^C', 'Cancel'], ['', ''], ['', ''], ['', ''], ['', '']];
+const FOOT_FN = [['^G', 'Help'], ['M-D', 'DOS Format'], ['M-A', 'Append'], ['M-B', 'Backup File'], ['', ''], ['', ''], ['^C', 'Cancel'], ['M-M', 'Mac Format'], ['M-P', 'Prepend'], ['^T', 'Browse'], ['', ''], ['', '']];
+function footHTML(items, clickable) {
+  return items.map(([k, l]) => k ? `<div data-k="${esc(k.trim())}">${clickable ? '<button>' : ''}<b>${esc(k)}</b>${esc(l)}${clickable ? '</button>' : ''}</div>` : '<div></div>').join('');
+}
+
+/* ================= Chapters ================= */
+const seen = new Set();
+let cur = 0;
+function buildChapters() {
+  const nav = $('#chapters'); let html = ''; let lastPart = '';
+  SCENES.forEach((s, i) => {
+    if (s.part !== lastPart) { html += `<h4>${s.part === 'Points to remember' ? 'Part A · ' : 'Part B · '}${s.part}</h4>`; lastPart = s.part; }
+    html += `<button class="chap" data-i="${i}"><span class="ic">${s.ic}</span><span>${s.title.replace(/^(Task [\d.]+|Challenge): /, '<b>$1</b><br>')}</span><span class="ck">✓</span></button>`;
+  });
+  html += '<div class="prog"><i id="cProg"></i></div><div style="font-size:11.5px;color:var(--sub);margin:4px 6px 0" id="cProgT"></div>';
+  nav.innerHTML = html;
+  nav.querySelectorAll('.chap').forEach(b => b.addEventListener('click', () => { allMode = false; $('#allBtn').textContent = '▶ Play everything'; playScene(+b.dataset.i); }));
+  updChap();
+}
+function updChap() {
+  document.querySelectorAll('.chap').forEach(b => { const i = +b.dataset.i; b.classList.toggle('on', i === cur); b.classList.toggle('seen', seen.has(i)); });
+  $('#cProg').style.width = (seen.size / SCENES.length * 100) + '%';
+  $('#cProgT').textContent = `${seen.size} of ${SCENES.length} watched`;
+  $('#prevBtn').disabled = cur === 0; $('#nextBtn').disabled = cur === SCENES.length - 1;
+}
+
+/* ================= Banner ================= */
+function renderBanner(s) {
+  const b = $('#banner');
+  if (s.banner === 'recipe') {
+    b.innerHTML = `<div class="recipe">
+      <div class="rstep" data-r="0"><span class="lbl">1 · Open / create</span><span class="kc" style="font-family:var(--mono);font-size:15px">nano script1.sh</span></div><span class="arrow">→</span>
+      <div class="rstep" data-r="1"><span class="lbl">2 · Exit</span><span class="kc"><kbd>Ctrl</kbd>+<kbd>X</kbd></span></div><span class="arrow">→</span>
+      <div class="rstep" data-r="2"><span class="lbl">3 · Save</span><span class="kc"><kbd>Y</kbd></span></div><span class="arrow">→</span>
+      <div class="rstep" data-r="3"><span class="lbl">4 · Confirm file name</span><span class="kc"><kbd>Enter</kbd></span></div><span class="arrow">→</span>
+      <div class="rstep" data-r="4"><span class="lbl">5 · Display it</span><span class="kc" style="font-family:var(--mono);font-size:15px">cat script1.sh</span></div></div>`;
+  } else if (s.banner === 'rules') {
+    const R = [
+      'Save the file with the <code>.sh</code> extension<br><code><span class="red">nano</span> script1.sh</code>',
+      'Begin with <code>#!/bin/bash</code> as <b>line 1</b>',
+      'Use <code>nano</code> or <code>gedit</code> to open the shell script',
+      '<b>Very very important:</b> always give execute permission<br><code><span class="red">chmod</span> +x script1.sh</code>',
+      'Run it with <code>./</code> at the start<br><code>./script1.sh</code>'];
+    b.innerHTML = `<div class="rules">${R.map((r, i) => `<div class="rule${i === 3 ? ' imp' : ''}" data-r="${i}"><span class="n">${i + 1}</span><div>${r}</div></div>`).join('')}</div>`;
+  } else if (s.banner === 'task') {
+    b.innerHTML = `<div class="taskbox">${s.task}</div>`;
+  } else if (s.banner === 'challenge') {
+    b.innerHTML = `<div class="taskbox">Create a <b>new</b> Bash script that has all four parts below. Run it, then <b>write down any errors</b> you hit and how you fixed them.
+      <div class="chk"><span>📦 a variable</span><span>⌨️ user input (read)</span><span>🔀 a condition (if)</span><span>🔁 a loop (for / while)</span></div></div>`;
+  } else b.innerHTML = '';
+}
+function markBanner(set, phase) {
+  const s = SCENES[cur];
+  if (s.banner === 'recipe' && phase !== undefined) document.querySelectorAll('.rstep').forEach(r => { const i = +r.dataset.r; r.classList.toggle('on', i === phase); r.classList.toggle('done', i < phase); });
+  if (s.banner === 'rules' && set) document.querySelectorAll('.rule').forEach(r => { const i = +r.dataset.r; if (r.classList.contains('on') && !set.includes(i)) r.classList.add('seen'); r.classList.toggle('on', set.includes(i)); });
+}
+
+/* ================= Steps list ================= */
+let stepItems = [];
+function buildSteps(s) {
+  stepItems = [];
+  s.steps.forEach((st, si) => {
+    if (st.nano) {
+      stepItems.push({ si, ph: 'open', html: st.n.open });
+      stepItems.push({ si, ph: 'type', html: st.n.type });
+      if (s.detail) {
+        stepItems.push({ si, ph: 'x', html: 'Press <b>Ctrl + X</b> to exit' });
+        stepItems.push({ si, ph: 'y', html: 'Press <b>Y</b> to save' });
+        stepItems.push({ si, ph: 'enter', html: 'Press <b>Enter</b> to keep the file name' });
+      } else stepItems.push({ si, ph: 'x', html: 'Save &amp; exit: <b>Ctrl + X</b> → <b>Y</b> → <b>Enter</b>' });
+    } else stepItems.push({ si, ph: 'cmd', html: st.n });
+  });
+  $('#stepList').innerHTML = stepItems.map((it, i) => `<div class="st" id="st${i}"><span class="b">${i + 1}</span><div>${it.html}</div></div>`).join('');
+}
+function setStep(si, ph) {
+  const s = SCENES[cur];
+  let idx = stepItems.findIndex(it => it.si === si && it.ph === ph);
+  if (idx < 0 && (ph === 'y' || ph === 'enter')) idx = stepItems.findIndex(it => it.si === si && it.ph === 'x');
+  if (idx < 0) return;
+  stepItems.forEach((_, i) => { const el = $('#st' + i); el.classList.toggle('on', i === idx); el.classList.toggle('done', i < idx); });
+  const el = $('#st' + idx); const box = el.parentElement.parentElement;
+  if (el.offsetTop < box.scrollTop || el.offsetTop > box.scrollTop + box.clientHeight - 60) box.scrollTo({ top: el.offsetTop - 40, behavior: 'smooth' });
+}
+function allStepsDone() { stepItems.forEach((_, i) => { const el = $('#st' + i); el.classList.remove('on'); el.classList.add('done'); }); }
+
+/* ================= Demo player ================= */
+const dsh = new Shell();
+const dBody = $('#dBody');
+let tok = 0, allMode = false;
+const alive = t => t === tok;
+function dScroll() { dBody.scrollTop = dBody.scrollHeight; }
+function dTitle() { const p = dsh.promptInfo(); $('#dTitle').textContent = `${p.user}@${p.host}: ${p.path}`; }
+async function typeText(el, text, t, mult = 1) {
+  for (const ch of text) { if (!alive(t)) return false; el.textContent += ch; dScroll(); await sleep(SPEEDS[speed].type * mult * (0.6 + Math.random() * 0.8)); }
+  return alive(t);
+}
+async function keys(list, t) {
+  const k = $('#keycaps'); k.classList.remove('out');
+  k.innerHTML = list.map((x, i) => (i ? '<span class="pl">+</span>' : '') + `<span class="kk" style="animation-delay:${i * 120}ms">${x}</span>`).join('');
+  await sleep(Math.max(900, SPEEDS[speed].pause * 0.9));
+  k.classList.add('out');
+  return alive(t);
+}
+function newPromptLine() {
+  const ln = document.createElement('div'); ln.className = 'ln';
+  ln.appendChild(promptFrag(dsh.promptInfo()));
+  const typed = document.createElement('span'); typed.className = 'typed';
+  const c = document.createElement('span'); c.className = 'cursor';
+  ln.append(typed, c); dBody.appendChild(ln); dScroll();
+  return { ln, typed, c };
+}
+async function runGen(gen, inputs, t) {
+  let n = gen.next(), keepEl = null;
+  while (!n.done) {
+    if (!alive(t)) return false;
+    const y = n.value;
+    if (y.read !== undefined) {
+      let el = keepEl;
+      if (!el) { el = lineEl(y.read ? [[y.read, '']] : []); dBody.appendChild(el); }
+      else if (y.read) el.appendChild(lineEl([[y.read, '']]).firstChild);
+      keepEl = null;
+      const v = document.createElement('span'); v.className = 'inputv'; const c = document.createElement('span'); c.className = 'cursor';
+      el.append(v, c); dScroll();
+      await sleep(SPEEDS[speed].pause * 0.6);
+      const val = inputs.shift() ?? '';
+      if (!await typeText(v, val, t, 1.4)) return false;
+      await sleep(350); c.remove();
+      n = gen.next(val); continue;
+    }
+    if (y.clear) dBody.innerHTML = '';
+    if (y.line) {
+      if (keepEl) { const tmp = lineEl(y.line); while (tmp.firstChild) keepEl.appendChild(tmp.firstChild); }
+      else { const el = lineEl(y.line); if (y.err) el.classList.add('flash'); dBody.appendChild(el); keepEl = y.keep ? el : null; }
+      if (y.keep && !keepEl) keepEl = dBody.lastChild;
+      dScroll(); await sleep(110);
+    }
+    n = gen.next();
+  }
+  return true;
+}
+async function doCmd(st, si, t) {
+  setStep(si, 'cmd'); if (st.rule) markBanner(st.rule);
+  if (SCENES[cur].banner === 'recipe') markBanner(null, 4);
+  const p = newPromptLine();
+  await sleep(380);
+  if (!await typeText(p.typed, st.c, t)) return false;
+  await sleep(300); p.c.remove();
+  const r = dsh.run(st.c);
+  for (const l of r.lines) { const el = lineEl(l); if (l.some(x => x[1] === 'err')) el.classList.add('flash'); dBody.appendChild(el); dScroll(); await sleep(70); }
+  if (r.action === 'script') { if (!await runGen(r.data.gen, (st.inputs || []).slice(), t)) return false; }
+  dTitle();
+  await sleep(SPEEDS[speed].pause);
+  return alive(t);
+}
+async function doNano(st, si, t) {
+  const s = SCENES[cur];
+  setStep(si, 'open'); if (st.rule) markBanner(st.rule); if (s.banner === 'recipe') markBanner(null, 0);
+  const p = newPromptLine();
+  await sleep(380);
+  if (!await typeText(p.typed, 'nano ' + st.nano, t)) return false;
+  await sleep(350); p.c.remove();
+  const abs = dsh.abs(st.nano); const old = dsh.get(abs);
+  const scr = document.createElement('div'); scr.className = 'nano';
+  scr.innerHTML = `<div class="nh"><span>GNU nano 7.2</span><span class="fn"></span><span class="r"></span></div><div class="nb"></div><div class="ns"></div><div class="nf">${footHTML(FOOT_MAIN)}</div>`;
+  scr.querySelector('.fn').textContent = st.nano;
+  $('#dTerm').appendChild(scr);
+  const nb = scr.querySelector('.nb'), ns = scr.querySelector('.ns'), nf = scr.querySelector('.nf'), fn = scr.querySelector('.fn');
+  let content = old ? old.content.replace(/\n$/, '') : '';
+  nb.innerHTML = hlBash(content);
+  ns.innerHTML = old ? `<span>[ Read ${content.split('\n').length} lines ]</span>` : '<span>[ New File ]</span>';
+  await sleep(SPEEDS[speed].pause);
+  if (!alive(t)) { scr.remove(); return false; }
+  // type
+  setStep(si, 'type'); if (st.ruleType) markBanner(st.ruleType);
+  ns.innerHTML = '';
+  if (old && st.replace) {
+    // delete old lines from the bottom, like holding Ctrl+K
+    let lines = content.split('\n');
+    while (lines.length) { if (!alive(t)) { scr.remove(); return false; } lines.pop(); nb.innerHTML = hlBash(lines.join('\n')); await sleep(Math.max(60, SPEEDS[speed].type * 2)); }
+    content = '';
+  }
+  fn.textContent = st.nano + ' *';
+  const caret = '<span class="cursor"></span>';
+  for (const ch of st.text) {
+    if (!alive(t)) { scr.remove(); return false; }
+    content += ch; nb.innerHTML = hlBash(content) + caret;
+    await sleep(SPEEDS[speed].type * 0.6 * (0.6 + Math.random() * 0.8));
+  }
+  nb.innerHTML = hlBash(content);
+  await sleep(SPEEDS[speed].pause * 0.7);
+  // Ctrl+X
+  setStep(si, 'x'); if (s.banner === 'recipe') markBanner(null, 1);
+  const hot = nf.querySelector('[data-k="^X"]'); if (hot) hot.classList.add('hot');
+  if (!await keys(['Ctrl', 'X'], t)) { scr.remove(); return false; }
+  ns.innerHTML = '<span>Save modified buffer?</span>'; nf.innerHTML = footHTML(FOOT_YN);
+  await sleep(SPEEDS[speed].pause * 0.6);
+  // Y
+  setStep(si, 'y'); if (s.banner === 'recipe') markBanner(null, 2);
+  nf.querySelector('[data-k="Y"]').classList.add('hot');
+  if (!await keys(['Y'], t)) { scr.remove(); return false; }
+  ns.innerHTML = `<span>File Name to Write: ${esc(st.nano)}</span>`; nf.innerHTML = footHTML(FOOT_FN);
+  await sleep(SPEEDS[speed].pause * 0.6);
+  // Enter
+  setStep(si, 'enter'); if (s.banner === 'recipe') markBanner(null, 3);
+  if (!await keys(['Enter ↵'], t)) { scr.remove(); return false; }
+  dsh.writeFile(abs, content + '\n');
+  scr.style.transition = 'opacity .3s'; scr.style.opacity = '0'; await sleep(300); scr.remove();
+  dsh.hist.push('nano ' + st.nano);
+  await sleep(SPEEDS[speed].pause * 0.5);
+  return alive(t);
+}
+async function playScene(i) {
+  const t = ++tok; cur = i; const s = SCENES[i];
+  document.querySelectorAll('#dTerm .nano').forEach(x => x.remove()); $('#keycaps').innerHTML = '';
+  $('#nextBtn').classList.remove('nextcall');
+  $('#sPart').textContent = s.part; $('#sTitle').textContent = s.title;
+  $('#sTitle').style.animation = 'none'; void $('#sTitle').offsetWidth; $('#sTitle').style.animation = '';
+  renderBanner(s); buildSteps(s); updChap();
+  dsh.reset(); dBody.innerHTML = '';
+  if (s.setup) { const a = dsh.abs('hello_world.sh'); dsh.writeFile(a, s.setup + '\n'); dsh.get(a).mode = 0o775; }
+  dTitle();
+  await sleep(400);
+  for (let si = 0; si < s.steps.length; si++) {
+    if (!alive(t)) return false;
+    const st = s.steps[si];
+    const ok = st.nano ? await doNano(st, si, t) : await doCmd(st, si, t);
+    if (!ok) return false;
+  }
+  if (!alive(t)) return false;
+  allStepsDone(); markBanner([]); if (s.banner === 'recipe') markBanner(null, 5);
+  newPromptLine();
+  seen.add(i); updChap();
+  if (i < SCENES.length - 1) $('#nextBtn').classList.add('nextcall');
+  return true;
+}
+async function playAll(from = 0) {
+  allMode = true; $('#allBtn').textContent = '■ Stop';
+  for (let i = from; i < SCENES.length; i++) {
+    if (!allMode) return;
+    const ok = await playScene(i);
+    if (!ok || !allMode) return;
+    await sleep(1400);
+  }
+  allMode = false; $('#allBtn').textContent = '▶ Play everything';
+}
+function stop() { tok++; allMode = false; $('#allBtn').textContent = '▶ Play everything'; $('#keycaps').innerHTML = ''; }
+$('#allBtn').addEventListener('click', () => { if (allMode) stop(); else playAll(0); });
+$('#replayBtn').addEventListener('click', () => { allMode = false; $('#allBtn').textContent = '▶ Play everything'; playScene(cur); });
+$('#stopBtn').addEventListener('click', stop);
+$('#prevBtn').addEventListener('click', () => { if (cur > 0) { stop(); playScene(cur - 1); } });
+$('#nextBtn').addEventListener('click', () => { if (cur < SCENES.length - 1) { stop(); playScene(cur + 1); } });
+$('#tryBtn').addEventListener('click', () => {
+  const s = SCENES[cur];
+  const first = s.steps.find(x => x.nano);
+  tryCmd(first ? 'nano ' + first.nano : s.steps[0].c);
+});
+document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { speed = b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
+
+/* ================= Practice terminal ================= */
+const sh = new Shell();
+const pBody = $('#pBody'), pOut = $('#pOut'), pIn = $('#pIn');
+let pending = null, runner = null, histIdx = null, nanoSt = null;
+const runs = []; const flags = { denied: false };
+function pScroll() { pBody.scrollTop = pBody.scrollHeight; }
+function pPrint(lines) { lines.forEach(l => pOut.appendChild(lineEl(l))); pScroll(); }
+function renderPrompt() {
+  const pp = $('#pPrompt'); pp.innerHTML = '';
+  pIn.classList.remove('secret');
+  if (runner && runner.waiting !== undefined) { pp.textContent = runner.keepEl ? '' : runner.waiting; if (runner.keepEl) { /* prompt already printed */ } }
+  else if (pending) { pp.textContent = pending.prompt; pIn.classList.add('secret'); }
+  else pp.appendChild(promptFrag(sh.promptInfo()));
+  const p = sh.promptInfo(); $('#pTitle').textContent = `${p.user}@${p.host}: ${p.path}`;
+}
+function echoCmd(text) {
+  const ln = document.createElement('div'); ln.className = 'ln';
+  ln.appendChild(promptFrag(sh.promptInfo()));
+  const t = document.createElement('span'); t.className = 'typed'; t.textContent = text; ln.appendChild(t);
+  pOut.appendChild(ln);
+}
+function welcome() {
+  pPrint([
+    [['Lab 3 practice terminal ', 'green'], ['(simulated bash on Ubuntu)', 'muted']],
+    [['⚠ For practice only. Your exam will be on a real Linux VM.', 'yellow']],
+    [['Start with:  ', ''], ['nano hello_world.sh', 'yellow'], ['     ·  type ', ''], ['help', 'yellow'], [' for all commands', '']],
+    [['', '']],
+  ]);
+}
+function pump(val) {
+  let n = runner.gen.next(val);
+  while (!n.done) {
+    const y = n.value;
+    if (y.read !== undefined) {
+      runner.waiting = y.read; runner.reads++;
+      if (runner.keepEl && y.read) runner.keepEl.appendChild(lineEl([[y.read, '']]).firstChild);
+      renderPrompt(); pScroll(); setTimeout(() => pIn.focus(), 0); return;
+    }
+    if (y.clear) pOut.innerHTML = '';
+    if (y.line) {
+      const txt = y.line.map(x => x[0]).join('');
+      runner.out.push(txt); if (y.err) runner.err = true;
+      if (runner.keepEl) { const tmp = lineEl(y.line); while (tmp.firstChild) runner.keepEl.appendChild(tmp.firstChild); if (!y.keep) runner.keepEl = null; }
+      else { const el = lineEl(y.line); pOut.appendChild(el); runner.keepEl = y.keep ? el : null; }
+      if (runner.out.length > 5000) { pPrint([L('…output stopped (too long)', 'err')]); break; }
+    }
+    n = runner.gen.next();
+  }
+  runs.push({ name: runner.name, abs: runner.abs, content: runner.content, out: runner.out.join('\n'), err: runner.err, reads: runner.reads });
+  runner = null; renderPrompt(); pScroll(); checkTasks();
+}
+function handleResult(r, line) {
+  if (r.action === 'clear') pOut.innerHTML = '';
+  pPrint(r.lines);
+  if (/^\.?\.?\//.test(line) && r.lines.some(l => l.some(x => /Permission denied/.test(x[0])))) flags.denied = true;
+  if (r.pending) pending = r.pending;
+  if (r.action === 'nano') openNano(r.data);
+  if (r.action === 'script') { runner = { ...r.data, out: [], err: false, reads: 0, keepEl: null }; pump(); return; }
+  renderPrompt(); pScroll(); checkTasks();
+}
+pIn.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = pIn.value; pIn.value = ''; histIdx = null;
+    if (runner && runner.waiting !== undefined) {
+      if (runner.keepEl) { const s = document.createElement('span'); s.className = 'inputv'; s.textContent = v; runner.keepEl.appendChild(s); runner.keepEl = null; }
+      else { const el = lineEl([[runner.waiting, ''], [v, 'inputv']]); pOut.appendChild(el); }
+      delete runner.waiting; pump(v); return;
+    }
+    if (pending) { const ln = document.createElement('div'); ln.className = 'ln'; ln.textContent = pending.prompt; pOut.appendChild(ln); const p = pending; pending = null; handleResult(p.resolve(v), '(password)'); return; }
+    echoCmd(v);
+    if (!v.trim()) { renderPrompt(); pScroll(); return; }
+    handleResult(sh.run(v), v.trim());
+  } else if (e.key === 'Tab') { e.preventDefault(); if (!pending && !runner) complete(); }
+  else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !runner && !pending) {
+    if (!sh.hist.length) return; e.preventDefault();
+    if (histIdx === null) histIdx = sh.hist.length;
+    histIdx = Math.max(0, Math.min(sh.hist.length, histIdx + (e.key === 'ArrowUp' ? -1 : 1)));
+    pIn.value = sh.hist[histIdx] || '';
+  } else if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); pOut.innerHTML = ''; }
+  else if (e.ctrlKey && (e.key === 'c' || e.key === 'C') && !window.getSelection().toString()) {
+    e.preventDefault();
+    if (runner) { pPrint([[[(runner.waiting || '') + pIn.value + '^C', '']]]); runs.push({ name: runner.name, abs: runner.abs, content: runner.content, out: runner.out.join('\n'), err: true, reads: runner.reads }); runner = null; }
+    else { echoCmd(pIn.value + '^C'); }
+    pIn.value = ''; pending = null; renderPrompt(); pScroll();
+  }
+});
+pBody.addEventListener('click', () => { if (!window.getSelection().toString()) pIn.focus(); });
+function commonPrefix(a) { let p = a[0]; for (const s of a) while (!s.startsWith(p)) p = p.slice(0, -1); return p; }
+function complete() {
+  const v = pIn.value; const word = v.match(/(\S*)$/)[1]; const before = v.slice(0, v.length - word.length);
+  let cands, labels;
+  if (!before.trim() && !word.includes('/')) { cands = CMD_NAMES.filter(c => c.startsWith(word)).map(c => c + ' '); labels = cands; }
+  else {
+    const i = word.lastIndexOf('/'); const dirPart = i >= 0 ? word.slice(0, i + 1) : ''; const base = word.slice(i + 1);
+    const dn = sh.get(sh.abs(dirPart || '.')); if (!dn || dn.type !== 'dir') return;
+    const ks = Object.keys(dn.children).filter(k => k.startsWith(base) && (base.startsWith('.') || !k.startsWith('.'))).sort();
+    cands = ks.map(k => dirPart + k + (dn.children[k].type === 'dir' ? '/' : ' ')); labels = ks.map(k => k + (dn.children[k].type === 'dir' ? '/' : ''));
+  }
+  if (!cands.length) return;
+  if (cands.length === 1) { pIn.value = before + cands[0]; return; }
+  const pre = commonPrefix(cands);
+  if (pre.length > word.length) { pIn.value = before + pre; return; }
+  echoCmd(v); pPrint([[[labels.join('   '), 'muted']]]);
+}
+function tryCmd(cmd) {
+  if (nanoSt) closeNano();
+  pending = null; renderPrompt(); pIn.value = cmd;
+  $('#practice').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => { pIn.focus(); pIn.setSelectionRange(cmd.length, cmd.length); }, 400);
+  toast('Press Enter to run:  ' + cmd);
+}
+$('#pClear').addEventListener('click', () => { pOut.innerHTML = ''; pIn.focus(); });
+$('#pReset').addEventListener('click', () => { sh.reset(); runner = null; pending = null; pOut.innerHTML = ''; welcome(); pPrint([L('Files reset to the starting state.', 'yellow')]); renderPrompt(); pIn.focus(); });
+
+/* ----- practice nano ----- */
+const nTa = $('#nTa'), nStatus = $('#nStatus'), nFoot = $('#nFoot');
+function openNano(d) {
+  nanoSt = { ...d, orig: d.content.replace(/\n$/, ''), mode: 'edit' };
+  $('#nano').hidden = false; $('#nName').textContent = d.name; $('#nMod').textContent = '';
+  nTa.value = nanoSt.orig;
+  nStatus.innerHTML = d.isNew ? '<span>[ New File ]</span>' : `<span>[ Read ${nanoSt.orig ? nanoSt.orig.split('\n').length : 0} lines ]</span>`;
+  if (!d.writable) nStatus.innerHTML = '<span>[ File is unwritable ]</span>';
+  setFoot(FOOT_MAIN);
+  setTimeout(() => { nTa.focus(); nTa.setSelectionRange(0, 0); }, 30);
+}
+function setFoot(items) {
+  nFoot.innerHTML = footHTML(items, true);
+  nFoot.querySelectorAll('[data-k]').forEach(d => d.addEventListener('click', e => { e.preventDefault(); nanoKey(d.dataset.k); }));
+}
+function modified() { return nTa.value !== nanoSt.orig; }
+function nanoKey(k) {
+  if (!nanoSt) return;
+  if (nanoSt.mode === 'edit') {
+    if (k === '^X') {
+      if (!modified()) return closeNano();
+      nanoSt.mode = 'yn'; nStatus.innerHTML = '<span>Save modified buffer?</span>'; setFoot(FOOT_YN); nTa.blur(); nTa.focus();
+    } else if (k === '^O') askName(false);
+    else toast('In this simulator use Ctrl+X → Y → Enter (or Ctrl+O to write out)');
+  } else if (nanoSt.mode === 'yn') {
+    if (k === 'Y' || k === 'y') askName(true);
+    else if (k === 'N' || k === 'n') closeNano();
+    else if (k === '^C') { nanoSt.mode = 'edit'; nStatus.innerHTML = '<span>[ Cancelled ]</span>'; setFoot(FOOT_MAIN); nTa.focus(); }
+  } else if (nanoSt.mode === 'fn' && k === '^C') { nanoSt.mode = 'edit'; nStatus.innerHTML = '<span>[ Cancelled ]</span>'; setFoot(FOOT_MAIN); nTa.focus(); }
+}
+function askName(thenExit) {
+  nanoSt.mode = 'fn'; nanoSt.exitAfter = thenExit;
+  nStatus.innerHTML = '<span>File Name to Write: </span><input id="nFn" spellcheck="false">';
+  setFoot(FOOT_FN);
+  const inp = $('#nFn'); inp.value = nanoSt.name; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); writeOut(inp.value.trim()); }
+    else if (e.key === 'Escape' || (e.ctrlKey && (e.key === 'c' || e.key === 'C'))) { e.preventDefault(); nanoKey('^C'); }
+  });
+}
+function writeOut(name) {
+  if (!name) return;
+  const abs = sh.abs(name);
+  const text = nTa.value + (nTa.value && !nTa.value.endsWith('\n') ? '\n' : '');
+  const ex = sh.get(abs);
+  if (!sh.writeFile(abs, text)) { nanoSt.mode = 'edit'; nStatus.innerHTML = `<span>[ Error writing ${esc(name)}: Permission denied ]</span>`; setFoot(FOOT_MAIN); nTa.focus(); return; }
+  nanoSt.orig = nTa.value; nanoSt.name = name; $('#nName').textContent = name; $('#nMod').textContent = '';
+  if (nanoSt.exitAfter) { closeNano(); return; }
+  nanoSt.mode = 'edit'; nStatus.innerHTML = `<span>[ Wrote ${nTa.value ? nTa.value.split('\n').length : 0} lines ]</span>`; setFoot(FOOT_MAIN); nTa.focus();
+  checkTasks();
+}
+function closeNano() { $('#nano').hidden = true; nanoSt = null; renderPrompt(); checkTasks(); setTimeout(() => pIn.focus(), 20); }
+nTa.addEventListener('input', () => { if (nanoSt) $('#nMod').textContent = modified() ? 'Modified' : ''; });
+nTa.addEventListener('keydown', e => {
+  if (!nanoSt) return;
+  if (nanoSt.mode === 'yn') { e.preventDefault(); const k = e.key.toLowerCase(); if (k === 'y') nanoKey('Y'); else if (k === 'n') nanoKey('N'); else if ((e.ctrlKey && k === 'c') || k === 'escape') nanoKey('^C'); return; }
+  if (e.key === 'Tab') { e.preventDefault(); const s = nTa.selectionStart; nTa.setRangeText('  ', s, nTa.selectionEnd, 'end'); nTa.dispatchEvent(new Event('input')); return; }
+  if (e.ctrlKey && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); nanoKey('^X'); }
+  else if (e.ctrlKey && (e.key === 'o' || e.key === 'O' || e.key === 's' || e.key === 'S')) { e.preventDefault(); nanoKey('^O'); }
+});
+
+/* ----- checklist ----- */
+const HW = '/home/student/hello_world.sh';
+const fileText = p => { const n = sh.get(p); return n && n.type === 'file' ? n.content : null; };
+const okRun = f => runs.some(r => !r.err && f(r));
+const TASKS = [
+  { t: 'Create <code>hello_world.sh</code> in nano with <code>#!/bin/bash</code> as line 1', h: 'nano hello_world.sh', ok: () => (fileText(HW) || '').split('\n')[0].trim() === '#!/bin/bash' },
+  { t: 'Run it <i>before</i> chmod and see “Permission denied”', h: './hello_world.sh', ok: () => flags.denied },
+  { t: 'Give it execute permission', h: 'chmod +x hello_world.sh', ok: () => { const n = sh.get(HW); return !!n && !!(n.mode & 0o100); } },
+  { t: 'Run it and display <b>Hello, World!</b>', h: './hello_world.sh', ok: () => okRun(r => /Hello, World!/.test(r.out)) },
+  { t: 'Task 2.1: store text in a variable and echo it', h: 'greeting="…"   echo $greeting', ok: () => okRun(r => /^\s*[A-Za-z_]\w*=\S/m.test(r.content) && /echo[^\n]*\$\{?[A-Za-z_]/.test(r.content) && r.out.trim()) },
+  { t: 'Task 2.2: ask for the user’s name with <code>read</code>', h: 'read name', ok: () => okRun(r => r.reads > 0) },
+  { t: 'Task 3.1: use <code>if … then … else … fi</code>', h: 'if [ $number -eq 100 ]', ok: () => okRun(r => /^\s*if\b/m.test(r.content) && /^\s*fi\b/m.test(r.content) && /^\s*else\b/m.test(r.content)) },
+  { t: 'Task 3.2: print Number 1 … Number 5 with a for loop', h: 'for i in {1..5}', ok: () => okRun(r => /^\s*for\b/m.test(r.content) && /\b5\b/.test(r.out)) },
+  { t: '<b>Challenge:</b> a NEW script with a variable, read, if and a loop that runs with no errors', h: 'nano challenge.sh', ok: () => okRun(r => !/\/hello_world\.sh$/.test(r.abs) && /^\s*[A-Za-z_]\w*=/m.test(r.content) && r.reads > 0 && /^\s*if\b/m.test(r.content) && /^\s*(for|while|until)\b/m.test(r.content)) },
+];
+const done = TASKS.map(() => false);
+function buildTasks() {
+  $('#taskList').innerHTML = TASKS.map((t, i) => `<div class="task" id="task${i}"><span class="box">✓</span><div><div class="tx">${t.t}</div><div style="font-size:11.5px;color:var(--sub);margin-top:2px">hint: <code>${esc(t.h)}</code></div></div></div>`).join('');
+}
+function checkTasks() {
+  TASKS.forEach((t, i) => { if (!done[i] && t.ok()) { done[i] = true; const el = $('#task' + i); el.classList.add('done', 'just'); toast('✅ Checklist item ' + (i + 1) + ' done!'); } });
+  const n = done.filter(Boolean).length;
+  $('#tBar').style.width = (n / TASKS.length * 100) + '%';
+  $('#celebrate').classList.toggle('on', n === TASKS.length);
+}
+function buildSnips() {
+  $('#snips').innerHTML = SNIPS.map(([t, c], i) => `<div class="snip"><div class="sh"><span>${t}</span><button data-i="${i}">Copy</button></div><pre>${hlBash(c)}</pre></div>`).join('');
+  $('#snips').querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(SNIPS[+b.dataset.i][1]); b.textContent = 'Copied!'; } catch (e) { b.textContent = 'Select & copy'; }
+    setTimeout(() => b.textContent = 'Copy', 1500);
+  }));
+}
+
+/* ================= Init ================= */
+buildChapters(); buildTasks(); buildSnips(); welcome(); renderPrompt();
+setTimeout(() => playScene(0), 600);
+
+</script>
+
+<!-- practice-hub nav -->
+<style>
+#ph-nav{position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;align-items:center;font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#ph-nav a{background:#1f2633;color:#fff;text-decoration:none;padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+#ph-nav a:hover{transform:translateY(-2px)}
+#ph-nav span{background:#fff4e5;color:#7a4300;border:1px solid #f5c27a;padding:7px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+#ph-nav button{border:0;background:#fff;color:#555;border-radius:50%;width:26px;height:26px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:13px}
+#ph-nav.min span{display:none}
+@media print{#ph-nav{display:none}}
+</style>
+<div id="ph-nav"><a href="../index.html">&larr; All labs</a><span>&#9888; Practice only &middot; Exam is on a real VM</span><button title="Hide note" onclick="this.parentNode.classList.toggle('min')">&times;</button></div>
+</body>
+</html>
