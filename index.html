@@ -56,7 +56,7 @@ footer{text-align:center;color:var(--sub);font-size:12.5px;padding:10px 24px 34p
     <h1>Lab Practice <span>Hub</span></h1>
     <p>Watch every lab step play out, then practise the commands yourself. Choose a lab below. Pages work on laptops and phones, and you don't need to log in.</p>
   </div>
-  <div class="term"><span class="g">student@hct-lab</span>:<span class="b">~</span>$ ls labs/<br>lab2 &nbsp;lab5 &nbsp;lab6 &nbsp;lab7 &nbsp;lab8 &nbsp;lab9<br><span class="g">student@hct-lab</span>:<span class="b">~</span>$ <span id="ty"></span><span class="cur"></span></div>
+  <div class="term"><span class="g">student@hct-lab</span>:<span class="b">~</span>$ ls labs/<br>lab2 &nbsp;lab3 &nbsp;lab5 &nbsp;lab6 &nbsp;lab7 &nbsp;lab8 &nbsp;lab9<br><span class="g">student@hct-lab</span>:<span class="b">~</span>$ <span id="ty"></span><span class="cur"></span></div>
 </section>
 
 <div class="disc" role="note"><div><span class="ic">⚠️</span><span><b>Disclaimer:</b> These pages are <b>simulations for practice only</b> and do not behave exactly like a real system. <b>Your lab exam will be done on a real Linux / Windows Virtual Machine (VM)</b>, so also practise every command on your VM.</span></div></div>
@@ -73,6 +73,9 @@ footer{text-align:center;color:var(--sub);font-size:12.5px;padding:10px 24px 34p
 const LABS = [
   { lab: 'Lab 2', color: '#d9576a', items: [
     { f: 'lab2-linux-commands.html', ico: '⌨️', t: 'Linux Commands to Remember', d: 'Watch su, cd, ls, touch, mkdir, nano, cp, mv, rm and more run, then use the practice terminal and its 10 challenges.', k: 'hands' },
+  ]},
+  { lab: 'Lab 3', color: '#e95420', items: [
+    { f: 'lab3-bash-scripting.html', ico: '📜', t: 'Bash Scripting', d: 'nano and the 5 shell-script rules, then Tasks 1–3 animated, plus a practice terminal that runs your own scripts.', k: 'hands' },
   ]},
   { lab: 'Lab 5', color: '#d9823f', items: [
     { f: 'lab5-users-account-files.html', ico: '👥', t: 'Linux Users & Account Files', d: 'User types and UIDs, /etc/passwd, shadow and group, home directories, plus a quick UID quiz.' },
@@ -92,9 +95,6 @@ const LABS = [
     { f: 'lab8-9-linux-labs-in-motion.html', ico: '🎬', t: 'Linux Labs in Motion', d: 'An animated Ubuntu terminal that plays the Lab 8 and Lab 9 Linux tasks as one walkthrough.' },
     { f: 'linux-explorer.html', ico: '🧭', t: 'Linux Explorer', d: 'Step-through diagrams for SSH, users and permissions, iptables, APT and PAM lockout.' },
     { f: 'lab9-windows-security.html', ico: '🪟', t: 'Windows Security Walkthrough', d: 'Security policies and system auditing: Tasks 1 and 3 on Windows Server 2016, click by click.' },
-  ]},
-  { lab: 'Extra', color: '#1f9d57', items: [
-    { f: 'linux-persistence-hunt.html', ico: '🕵️', t: 'Linux Persistence Hunt', d: 'Eight places attackers hide persistence on a compromised Linux server, with demo terminal output.' },
   ]},
 ];
 const main = document.getElementById('main'), chips = document.getElementById('chips');
