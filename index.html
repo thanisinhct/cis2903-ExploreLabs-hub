@@ -56,7 +56,7 @@ footer{text-align:center;color:var(--sub);font-size:12.5px;padding:10px 24px 34p
     <h1>Lab Practice <span>Hub</span></h1>
     <p>Watch every lab step play out, then practise the commands yourself. Choose a lab below. Pages work on laptops and phones, and you don't need to log in.</p>
   </div>
-  <div class="term"><span class="g">student@hct-lab</span>:<span class="b">~</span>$ ls labs/<br>lab2 &nbsp;lab3 &nbsp;lab5 &nbsp;lab6 &nbsp;lab7 &nbsp;lab8 &nbsp;lab9<br><span class="g">student@hct-lab</span>:<span class="b">~</span>$ <span id="ty"></span><span class="cur"></span></div>
+  <div class="term"><span class="g">student@hct-lab</span>:<span class="b">~</span>$ ls labs/<br>lab2 &nbsp;lab3 &nbsp;lab4 &nbsp;lab5 &nbsp;lab6 &nbsp;lab7 &nbsp;lab8 &nbsp;lab9<br><span class="g">student@hct-lab</span>:<span class="b">~</span>$ <span id="ty"></span><span class="cur"></span></div>
 </section>
 
 <div class="disc" role="note"><div><span class="ic">⚠️</span><span><b>Disclaimer:</b> These pages are <b>simulations for practice only</b> and do not behave exactly like a real system. <b>Your lab exam will be done on a real Linux / Windows Virtual Machine (VM)</b>, so also practise every command on your VM.</span></div></div>
@@ -76,6 +76,9 @@ const LABS = [
   ]},
   { lab: 'Lab 3', color: '#e95420', items: [
     { f: 'lab3-bash-scripting.html', ico: '📜', t: 'Bash Scripting', d: 'nano and the 5 shell-script rules, then Tasks 1–3 animated, plus a practice terminal that runs your own scripts.', k: 'hands' },
+  ]},
+  { lab: 'Lab 4', color: '#c3471e', items: [
+    { f: 'lab4-ssh-walkthrough.html', ico: '🔑', t: 'SSH, SCP & SFTP Walkthrough', d: 'Install and configure openssh-server on port 2222 on Ubuntu, then connect from Windows with ssh, scp and sftp.' },
   ]},
   { lab: 'Lab 5', color: '#d9823f', items: [
     { f: 'lab5-users-account-files.html', ico: '👥', t: 'Linux Users & Account Files', d: 'User types and UIDs, /etc/passwd, shadow and group, home directories, plus a quick UID quiz.' },
